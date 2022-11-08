@@ -12,6 +12,7 @@ class Environment:
         self.districts = []
         self.district_size = district_size
         self.n_steps = n_steps
+        self.current_step = 0
 
         # subdivide the grid in district
         # if the width or height is not a multiple of district_size extend the last district to cover the grid
@@ -34,6 +35,7 @@ class Environment:
         self.mounting_points = []
         self.n_robotic_arms = n_robotic_arms
         self.robotic_arms = []
+        self.total_score = 0
 
     def add_tasks(self, tasks, task_positions):
         for task, positions in zip(tasks, task_positions):
@@ -59,12 +61,19 @@ class Environment:
         arm.mount(mounting_point)
         self.robotic_arms.append(arm)
         self.calculate_district(mounting_point.x, mounting_point.y).add_robotic_arm(arm)
+        return arm
 
     def add_mounting_points(self, mounting_points):
         for m in mounting_points:
             mounting_point = MountingPoint(m[0], m[1])
             self.mounting_points.append(mounting_point)
             self.calculate_district(mounting_point.x, mounting_point.y).add_mounting_point(mounting_point)
+
+    def update_time(self):
+        for a in self.robotic_arms:
+            if len(a.moves) != self.current_step:
+                a.moves.append("W")
+        self.current_step += 1
 
     def move_robotic_arm(self, robotic_arm, action):
         """
@@ -93,6 +102,9 @@ class Environment:
         """
         if action not in ["U", "R", "D", "L", "W"]:
             raise ValueError("action must be one of U R D L W")
+
+        if len(robotic_arm.moves) > self.current_step:
+            return False, (0, 0)
 
         last_point = robotic_arm.path[-1]
         if action == "U":
@@ -125,7 +137,8 @@ class Environment:
         return True, new_point
 
     def show(self):
-        print(self.width, self.height, self.n_robotic_arms, len(self.mounting_points), len(self.tasks), self.n_steps, sep=" ")
+        print(self.width, self.height, self.n_robotic_arms, len(self.mounting_points), len(self.tasks), self.n_steps,
+              sep=" ")
         for point in self.mounting_points:
             print(point.x, point.y, sep=" ")
         for task in self.tasks:

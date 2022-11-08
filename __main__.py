@@ -1,7 +1,10 @@
 from Core.Utils.Data import create_Environment
-
+from Core.Agent import Agent
 
 if __name__ == "__main__":
-    path = r"./Dataset/b_single_arm.txt"
+    path = r"./Dataset/a_example.txt"
     env = create_Environment(path)
-    env.show()
+    boomer = Agent(env)
+    boomer.environment.show()
+    boomer.deploy_arm()
+    boomer.running_workers[0].my_description()

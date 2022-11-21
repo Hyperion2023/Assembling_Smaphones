@@ -23,5 +23,12 @@ class Agent:
     def deploy_arm(self):
         # TODO: implement distance deployment strat
 
-        self.running_workers.append(
-            Worker(self.environment.add_robotic_arm(self.environment.mounting_points[0]), self.environment.tasks[0]))
+        for row in self.environment.districts:
+            for district in row:
+                district.sort_tasks()
+                for mounting_point_index, mouting_point in enumerate(district.mounting_points):
+                    print(district.ordered_tasks[mounting_point_index])
+                    if not district.ordered_tasks[mounting_point_index]:  # if there are no task in district
+                        continue
+                    self.running_workers.append(
+                       Worker(self.environment.add_robotic_arm(mouting_point), district.ordered_tasks[mounting_point_index].pop(0)))

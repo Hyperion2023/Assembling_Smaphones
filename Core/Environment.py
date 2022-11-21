@@ -71,7 +71,7 @@ class Environment:
 
     def update_time(self):
         for a in self.robotic_arms:
-            if len(a.moves) != self.current_step:
+            if len(a.moves) < self.current_step:
                 a.moves.append("W")
         self.current_step += 1
 
@@ -102,38 +102,61 @@ class Environment:
         """
         if action not in ["U", "R", "D", "L", "W"]:
             raise ValueError("action must be one of U R D L W")
-
+        # print("MOVES: "+ str(len(robotic_arm.moves)))
+        # print("MOVES index: "+ str(self.current_step))
         if len(robotic_arm.moves) > self.current_step:
-            return False, (0, 0)
+           # print("TOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+            #print(len(robotic_arm.moves))
 
+            return False, (0, 0)
+        flag=False
         last_point = robotic_arm.path[-1]
+        #print("ARM LASTPOINT: " + str(last_point))
         if action == "U":
             new_point = (last_point[0], last_point[1] + 1)
+            if len(robotic_arm.path)>=2:
+                if new_point==robotic_arm.path[-2]:
+                    flag=True
         elif action == "R":
             new_point = (last_point[0] + 1, last_point[1])
+            if len(robotic_arm.path)>=2:
+                if new_point==robotic_arm.path[-2]:
+                    flag=True
         elif action == "D":
             new_point = (last_point[0], last_point[1] - 1)
+            if len(robotic_arm.path)>=2:
+                if new_point==robotic_arm.path[-2]:
+                    flag=True
         elif action == "L":
             new_point = (last_point[0] - 1, last_point[1])
+            if len(robotic_arm.path)>=2:
+                if new_point==robotic_arm.path[-2]:
+                    flag=True
         else:
             new_point = last_point
-
-        if new_point[0] > self.width or new_point[0] < 0:
-            return False, (0, 0)
-        if new_point[1] > self.height or new_point[1] < 0:
-            return False, (0, 0)
-
-        # check if new_point is on a mounting point
-        for m in self.mounting_points:
-            if new_point[0] == m.x and new_point[1] == m.y:
+        #print("NEWPOINT: " +str(new_point))
+        if not flag:
+            if new_point[0] > self.width or new_point[0] < 0:
+                return False, (0, 0)
+            if new_point[1] > self.height or new_point[1] < 0:
                 return False, (0, 0)
 
-        # check if new_point collide with another robotic arm
-        for a in self.robotic_arms:
-            for p in a.path:
-                if new_point == p:
+            # check if new_point is on a mounting point
+            for m in self.mounting_points:
+                if new_point[0] == m.x and new_point[1] == m.y:
                     return False, (0, 0)
 
+            # check if new_point collide with another robotic arm
+            for a in self.robotic_arms:
+                for p in a.path:
+                    if new_point == p:
+                        return False, (0, 0)
+        else:
+            
+            robotic_arm.path.pop()
+            new_point=robotic_arm.path[-1]
+            robotic_arm.path.pop()
+        
         return True, new_point
 
     def show(self):

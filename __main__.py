@@ -5,6 +5,7 @@ if __name__ == "__main__":
     path = r"./Dataset/a_example.txt"
     env = create_Environment(path)
     boomer = Agent(env)
-    boomer.environment.show()
+    #boomer.environment.show()
     boomer.deploy_arm()
-    boomer.running_workers[0].my_description()
+    #boomer.running_workers[0].my_description()
+    boomer.run_assembly()

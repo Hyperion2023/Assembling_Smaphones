@@ -9,7 +9,7 @@ class Environment:
 
         self.width = width
         self.height = height
-        self.districts = []
+        self.districts = []  # this will be a list of list
         self.district_size = district_size
         self.n_steps = n_steps
         self.current_step = 0

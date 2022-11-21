@@ -23,4 +23,6 @@ class Task:
 
     def get_task_score(self, mounting_point):
         first_point = self.points[0]
-        return self.value / (self.distance + self.manhattan_distance(first_point, mounting_point))
+        self.score= self.value / (self.distance + self.manhattan_distance(first_point, (mounting_point.x, mounting_point.y)))
+        #print("SCORE: "+str(self.score))
+        return self.score

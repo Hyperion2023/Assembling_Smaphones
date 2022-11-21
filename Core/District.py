@@ -5,7 +5,8 @@ class District:
         self.height = height
         self.task = []
         self.mounting_points = []
-        self.robotic_arm = []
+        self.robotic_arms = []
+        self.ordered_tasks = [] #List of lists<
 
     def add_task(self, task):
         self.task.append(task)
@@ -13,5 +14,12 @@ class District:
     def add_mounting_point(self, mounting_point):
         self.mounting_points.append(mounting_point)
 
+    def sort_tasks(self):
+        self.ordered_tasks = []
+        for mounting_point in self.mounting_points:
+            new_list = list(self.tasks)
+            new_list.sort(key=lambda x: x.get_task_score(mounting_point), reverse=True)
+            self.ordered_tasks.append(new_list)
+
     def add_robotic_arm(self, robotic_arm):
-        self.robotic_arm.append(robotic_arm)
+        self.robotic_arms.append(robotic_arm)

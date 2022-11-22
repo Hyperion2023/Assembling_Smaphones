@@ -8,7 +8,7 @@ def create_Environment(file_path: str):
 
         width = int((lines[0].split(" "))[0])
         height = int((lines[0].split(" "))[1])
-        number_of_arms =  int((lines[0].split(" "))[2])
+        number_of_arms = int((lines[0].split(" "))[2])
 
 
 

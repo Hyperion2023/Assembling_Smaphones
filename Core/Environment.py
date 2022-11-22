@@ -3,7 +3,8 @@ from Core.RoboticArm import RoboticArm
 from Core.MoutingPoint import MountingPoint
 from Core.Task import Task
 import matplotlib.pyplot as plt
-import numpy as np 
+import numpy as np
+
 
 class Environment:
     def __init__(self, width, height, n_steps, n_robotic_arms, district_size=25):
@@ -14,7 +15,18 @@ class Environment:
         self.district_size = district_size
         self.n_steps = n_steps
         self.current_step = 0
-        
+        self.fig = plt.figure()
+        plt.switch_backend('TkAgg')  # TkAgg (instead Qt4Agg)
+        plt.get_backend()
+        self.matrix = np.ones((self.height, self.width, 3))
+        self.im = plt.imshow(self.matrix, origin="lower", cmap="seismic", interpolation="none")
+        ax = plt.gca()
+        ax.set_xticks([x - 0.5 for x in range(1, self.width)])
+        ax.set_yticks([y - 0.5 for y in range(1, self.height)])
+        plt.grid()
+        mng = plt.get_current_fig_manager()
+        ### works on Ubuntu??? >> did NOT working on windows
+        mng.resize(*mng.window.maxsize())
 
         # subdivide the grid in district
         # if the width or height is not a multiple of district_size extend the last district to cover the grid
@@ -74,7 +86,7 @@ class Environment:
     def update_time(self):
         print("°°°°°°°°°°°°°°˚°°°°°°°°TIME UPDATED°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°")
         for a in self.robotic_arms:
-            if len(a.moves)-1 < self.current_step:
+            if len(a.moves) - 1 < self.current_step:
                 a.moves.append("W")
         self.current_step += 1
 
@@ -108,36 +120,36 @@ class Environment:
         # print("MOVES: "+ str(len(robotic_arm.moves)))
         # print("MOVES index: "+ str(self.current_step))
         if len(robotic_arm.moves) > self.current_step:
-           # print("TOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-            #print(len(robotic_arm.moves))
+            # print("TOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+            # print(len(robotic_arm.moves))
 
             return False, (0, 0)
-        flag=False
+        flag = False
         last_point = robotic_arm.path[-1]
-        #print("ARM LASTPOINT: " + str(last_point))
+        # print("ARM LASTPOINT: " + str(last_point))
         if action == "U":
             new_point = (last_point[0], last_point[1] + 1)
-            if len(robotic_arm.path)>=2:
-                if new_point==robotic_arm.path[-2]:
-                    flag=True
+            if len(robotic_arm.path) >= 2:
+                if new_point == robotic_arm.path[-2]:
+                    flag = True
         elif action == "R":
             new_point = (last_point[0] + 1, last_point[1])
-            if len(robotic_arm.path)>=2:
-                if new_point==robotic_arm.path[-2]:
-                    flag=True
+            if len(robotic_arm.path) >= 2:
+                if new_point == robotic_arm.path[-2]:
+                    flag = True
         elif action == "D":
             new_point = (last_point[0], last_point[1] - 1)
-            if len(robotic_arm.path)>=2:
-                if new_point==robotic_arm.path[-2]:
-                    flag=True
+            if len(robotic_arm.path) >= 2:
+                if new_point == robotic_arm.path[-2]:
+                    flag = True
         elif action == "L":
             new_point = (last_point[0] - 1, last_point[1])
-            if len(robotic_arm.path)>=2:
-                if new_point==robotic_arm.path[-2]:
-                    flag=True
+            if len(robotic_arm.path) >= 2:
+                if new_point == robotic_arm.path[-2]:
+                    flag = True
         else:
             new_point = last_point
-        #print("NEWPOINT: " +str(new_point))
+        # print("NEWPOINT: " +str(new_point))
         if not flag:
             if new_point[0] > self.width or new_point[0] < 0:
                 return False, (0, 0)
@@ -155,11 +167,11 @@ class Environment:
                     if new_point == p:
                         return False, (0, 0)
         else:
-            
+
             robotic_arm.path.pop()
-            new_point=robotic_arm.path[-1]
+            new_point = robotic_arm.path[-1]
             robotic_arm.path.pop()
-        
+
         return True, new_point
 
     def show(self):
@@ -173,39 +185,24 @@ class Environment:
                 print(point[0], point[1], sep=" ", end=" ")
             print(" ")
 
-    def draw(self,agent=None):
-        plt.switch_backend('TkAgg') #TkAgg (instead Qt4Agg)
-        plt.get_backend()
-        
+    def draw(self, agent=None):
+        self.matrix = np.ones((self.height, self.width, 3))
 
-        
-        self.matrix=np.zeros((self.height,self.width))
-        
         for m in self.mounting_points:
-            self.matrix[m.y, m.x] = 10
-            
+            self.matrix[m.y, m.x] = (1, 0, 0)
+
         for t in self.tasks:
-           for inner in t.points:
-                self.matrix[inner[1], inner[0]] = -10
+            for inner in t.points:
+                self.matrix[inner[1], inner[0]] = (0, 0, 1)
         if agent:
             for t in agent.running_workers:
                 for inner in t.task.points:
-                    self.matrix[inner[1], inner[0]] = -10
+                    self.matrix[inner[1], inner[0]] = (0, 0, 1)
         for r in self.robotic_arms:
-            for points in r.path: 
-                self.matrix[points[1], points[0]]= 5
-   
-        fig=plt.figure()
-        plt.imshow(self.matrix,origin="lower",cmap="seismic",interpolation="none")
-        ax=plt.gca()
-        ax.set_xticks([x-0.5 for x in range(1,self.width)] )
-        ax.set_yticks([y-0.5 for y in range(1,self.height)])
-        plt.grid()
-        mng = plt.get_current_fig_manager()
-        ### works on Ubuntu??? >> did NOT working on windows
-        mng.resize(*mng.window.maxsize())
-        plt.show()
+            for points in r.path:
+                self.matrix[points[1], points[0]] = (0, 1, 0)
 
-     
-     
-        
+        self.im.set_data(self.matrix)
+
+        plt.draw()
+        plt.pause(5)

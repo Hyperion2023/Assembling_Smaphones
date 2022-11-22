@@ -33,10 +33,11 @@ class Task:
     def task_completed(self):
         
         if len(self.points)==0:
-            print("TASK Completed")
+            #print("TASK Completed")
+            
             return True
         else:
-            print("TASK len still in progress")
+            #print("TASK len still in progress")
             return False
 
     def task_target_update(self):

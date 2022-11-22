@@ -25,9 +25,11 @@ class Worker:
     def retract(self):
         if not self.arm.collision_check:
             if len(self.arm.path)>1:
+         
                 return True, self.arm.path[-2]
             else:
-                False, self.arm.path[-1]
+
+                return False, self.arm.path[-1]
             
         else:
             return False,(0,0)#TODO: to modify for real collision_check

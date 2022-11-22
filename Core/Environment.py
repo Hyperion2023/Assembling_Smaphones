@@ -2,10 +2,11 @@ from Core.District import District
 from Core.RoboticArm import RoboticArm
 from Core.MoutingPoint import MountingPoint
 from Core.Task import Task
-
+import matplotlib.pyplot as plt
+import numpy as np 
 
 class Environment:
-    def __init__(self, width, height, n_steps, n_robotic_arms, district_size=2):
+    def __init__(self, width, height, n_steps, n_robotic_arms, district_size=25):
 
         self.width = width
         self.height = height
@@ -13,6 +14,7 @@ class Environment:
         self.district_size = district_size
         self.n_steps = n_steps
         self.current_step = 0
+        
 
         # subdivide the grid in district
         # if the width or height is not a multiple of district_size extend the last district to cover the grid
@@ -70,8 +72,9 @@ class Environment:
             self.calculate_district(mounting_point.x, mounting_point.y).add_mounting_point(mounting_point)
 
     def update_time(self):
+        print("°°°°°°°°°°°°°°˚°°°°°°°°TIME UPDATED°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°")
         for a in self.robotic_arms:
-            if len(a.moves) < self.current_step:
+            if len(a.moves)-1 < self.current_step:
                 a.moves.append("W")
         self.current_step += 1
 
@@ -169,3 +172,40 @@ class Environment:
             for point in task.points:
                 print(point[0], point[1], sep=" ", end=" ")
             print(" ")
+
+    def draw(self,agent=None):
+        plt.switch_backend('TkAgg') #TkAgg (instead Qt4Agg)
+        plt.get_backend()
+        
+
+        
+        self.matrix=np.zeros((self.height,self.width))
+        
+        for m in self.mounting_points:
+            self.matrix[m.y, m.x] = 10
+            
+        for t in self.tasks:
+           for inner in t.points:
+                self.matrix[inner[1], inner[0]] = -10
+        if agent:
+            for t in agent.running_workers:
+                for inner in t.task.points:
+                    self.matrix[inner[1], inner[0]] = -10
+        for r in self.robotic_arms:
+            for points in r.path: 
+                self.matrix[points[1], points[0]]= 5
+   
+        fig=plt.figure()
+        plt.imshow(self.matrix,origin="lower",cmap="seismic",interpolation="none")
+        ax=plt.gca()
+        ax.set_xticks([x-0.5 for x in range(1,self.width)] )
+        ax.set_yticks([y-0.5 for y in range(1,self.height)])
+        plt.grid()
+        mng = plt.get_current_fig_manager()
+        ### works on Ubuntu??? >> did NOT working on windows
+        mng.resize(*mng.window.maxsize())
+        plt.show()
+
+     
+     
+        

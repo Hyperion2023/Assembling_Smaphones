@@ -4,6 +4,7 @@ from Core.Agent import Agent
 if __name__ == "__main__":
     path = r"./Dataset/a_example.txt"
     env = create_Environment(path)
+    #env.draw()
     boomer = Agent(env)
     #boomer.environment.show()
     boomer.deploy_arm()

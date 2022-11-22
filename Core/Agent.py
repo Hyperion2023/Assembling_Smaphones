@@ -1,11 +1,12 @@
 from Core.Worker import Worker
-
+drawFlag=True
 
 class Agent:
     def __init__(self, environment):
         self.environment = environment
         self.unmoved_arms = self.environment.n_robotic_arms
         self.running_workers = []
+        self.deployed_arms=0
 
     def update_step(self):
         self.environment.update_time()
@@ -30,10 +31,18 @@ class Agent:
                     #print(district.ordered_tasks[mounting_point_index])
                     if not district.ordered_tasks[mounting_point_index]:  # if there are no task in district
                         continue
-                    self.running_workers.append(
-                       Worker(self.environment.add_robotic_arm(mouting_point), district.ordered_tasks[mounting_point_index].pop(0)))
+                    selectedTask=district.ordered_tasks[mounting_point_index][0]
+                    if self.deployed_arms<self.unmoved_arms:
+                        self.deployed_arms+=1
+                        self.running_workers.append(
+                        Worker(self.environment.add_robotic_arm(mouting_point),selectedTask ))
+                        for ot in district.ordered_tasks:
+                            ot.remove(selectedTask)
+                        self.environment.tasks.remove(selectedTask)
+        self.environment.draw(agent=self)
 
     def worker_move_arm(self,worker,x_y_distances,retraction=False):
+        print("MOVE ARM")
         arm_moved=False
         if not worker.action_taken:
             ##Check su o giu
@@ -61,6 +70,7 @@ class Agent:
                 worker.take_action()
            # print("ARM MOVED: "+str(arm_moved))
         if not worker.action_taken:
+            print("HERE W in workers")
             arm_moved=self.environment.move_robotic_arm(worker.arm,"W")     
             print("[MOVE]: W")               
         worker.reset_action_taken()
@@ -74,14 +84,15 @@ class Agent:
       
         # TODO: ottimizzare scelta passi, per ora prima su e giu poi dx e sx
         self.worker_move_arm(worker,x_y_distances)
-        print("New [ARM position]: "+str(worker.arm.get_position())) 
-        print("New [TASK position]: "+str(worker.task.get_position()))
+        #print("New [ARM position]: "+str(worker.arm.get_position())) 
+        #print("New [TASK position]: "+str(worker.task.get_position()))
         if worker.arm.get_position() ==worker.task.get_position():
             worker.task.task_target_update()
 
     def worker_retract_arm(self,worker):
+
         retract,newPos=worker.retract()
-        
+        print("NEWPOS: ",str(newPos))
         x_y_distances=worker.task.x_y_distance(worker.arm.get_position(),newPos)
         print(x_y_distances)
         if retract:
@@ -92,19 +103,36 @@ class Agent:
 
 
     def run_assembly(self):
-        self.environment.n_steps=4
+        
         for current_step in range(self.environment.n_steps):
             print("[STEP]: " + str(current_step))
+            
+
             for worker in self.running_workers:
-                
-                if not worker.task.task_completed() and not worker.arm.collision_check:
+                if current_step ==0:
+                    district=self.environment.calculate_district(worker.arm.mounting_point.x,worker.arm.mounting_point.y)
+                    for ot in district.ordered_tasks:
+                        print(ot)
+                    
+                isTaskCompleted=worker.task.task_completed()
+                if isTaskCompleted and len(worker.arm.path)==1:
+                    
+                    district=self.environment.calculate_district(worker.arm.mounting_point.x,worker.arm.mounting_point.y)
+                    newTask=district.ordered_tasks[district.mounting_points.index(worker.arm.mounting_point)][0]
+                    for ot in district.ordered_tasks:
+                        ot.remove(newTask)
+                    self.environment.tasks.remove(newTask)
+                    worker.task=newTask
+
+                if not isTaskCompleted and not worker.arm.collision_check:
                     self.get_to_task_point(worker)
                 else:
                     print("RETRACTING")
                     self.worker_retract_arm(worker)
-                print("PATH:")
-                print(worker.arm.path)
             self.environment.update_time()
+            if drawFlag:
+                self.environment.draw(agent=self)
         print("#######################")
+        
         for worker in self.running_workers:
             print(worker.arm.moves)

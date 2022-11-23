@@ -12,6 +12,6 @@ if __name__ == "__main__":
     #env.draw()
     boomer = Agent(env)
     #boomer.environment.show()
-    boomer.random_deploy()
+    boomer.deploy_arm()
     #boomer.running_workers[0].my_description()
     boomer.run_assembly()

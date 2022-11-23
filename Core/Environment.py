@@ -32,11 +32,15 @@ class Environment:
         # if the width or height is not a multiple of district_size extend the last district to cover the grid
         for i in range(0, self.width, district_size):
             row = []
+            if self.width - i <  district_size:
+                break
             if self.width - i < 2 * district_size:
                 size_x = self.width - i
             else:
                 size_x = district_size
             for j in range(0, self.height, district_size):
+                if self.height - j < district_size:
+                    break
                 if self.height - j < 2 * district_size:
                     size_y = self.height - j
                 else:
@@ -62,6 +66,10 @@ class Environment:
 
     def calculate_district(self, x, y):
         dx, dy = int(x / self.district_size), int(y / self.district_size)
+        if dx > len(self.districts) - 1:
+            dx = len(self.districts) - 1
+        if dy > len(self.districts[0]) - 1:
+            dy = len(self.districts[0]) - 1
         return self.districts[dx][dy]
 
     def add_robotic_arm(self, mounting_point):
@@ -129,26 +137,18 @@ class Environment:
         # print("ARM LASTPOINT: " + str(last_point))
         if action == "U":
             new_point = (last_point[0], last_point[1] + 1)
-            if len(robotic_arm.path) >= 2:
-                if new_point == robotic_arm.path[-2]:
-                    flag = True
         elif action == "R":
             new_point = (last_point[0] + 1, last_point[1])
-            if len(robotic_arm.path) >= 2:
-                if new_point == robotic_arm.path[-2]:
-                    flag = True
         elif action == "D":
             new_point = (last_point[0], last_point[1] - 1)
-            if len(robotic_arm.path) >= 2:
-                if new_point == robotic_arm.path[-2]:
-                    flag = True
         elif action == "L":
             new_point = (last_point[0] - 1, last_point[1])
-            if len(robotic_arm.path) >= 2:
-                if new_point == robotic_arm.path[-2]:
-                    flag = True
         else:
             new_point = last_point
+
+        if len(robotic_arm.path) >= 2:
+            if new_point == robotic_arm.path[-2]:
+                flag = True
         # print("NEWPOINT: " +str(new_point))
         if not flag:
             if new_point[0] > self.width or new_point[0] < 0:
@@ -205,4 +205,4 @@ class Environment:
         self.im.set_data(self.matrix)
 
         plt.draw()
-        plt.pause(5)
+        plt.pause(0.1)

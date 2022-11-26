@@ -4,10 +4,10 @@ from Core.MoutingPoint import MountingPoint
 from Core.Task import Task
 import matplotlib.pyplot as plt
 import numpy as np
-
+import matplotlib.patches as patches
 
 class Environment:
-    def __init__(self, width, height, n_steps, n_robotic_arms, district_size=25):
+    def __init__(self, width, height, n_steps, n_robotic_arms, district_size=17):
 
         self.width = width
         self.height = height
@@ -20,10 +20,10 @@ class Environment:
         plt.get_backend()
         self.matrix = np.ones((self.height, self.width, 3))
         self.im = plt.imshow(self.matrix, origin="lower", cmap="seismic", interpolation="none")
-        ax = plt.gca()
-        ax.set_xticks([x - 0.5 for x in range(1, self.width)])
-        ax.set_yticks([y - 0.5 for y in range(1, self.height)])
-        plt.grid()
+        self.ax = plt.gca()
+        self.ax.set_xticks([x - 0.5 for x in range(1, self.width)])
+        self.ax.set_yticks([y - 0.5 for y in range(1, self.height)])
+        #plt.grid()
         mng = plt.get_current_fig_manager()
         ### works on Ubuntu??? >> did NOT working on windows
         mng.resize(*mng.window.maxsize())
@@ -113,6 +113,7 @@ class Environment:
         robotic_arm.path.append(new_point)
         return True
 
+
     def is_move_valid(self, robotic_arm, action):
         """
 
@@ -188,8 +189,6 @@ class Environment:
     def draw(self, agent=None):
         self.matrix = np.ones((self.height, self.width, 3))
 
-        for m in self.mounting_points:
-            self.matrix[m.y, m.x] = (1, 0, 0)
 
         for t in self.tasks:
             for inner in t.points:
@@ -202,7 +201,12 @@ class Environment:
             for points in r.path:
                 self.matrix[points[1], points[0]] = (0, 1, 0)
 
+        for m in self.mounting_points:
+            self.matrix[m.y, m.x] = (1, 0, 0)
         self.im.set_data(self.matrix)
+        for row in self.districts:
+            for district in row:
+                self.ax.add_patch(patches.Rectangle((district.origin[0]-0.5,district.origin[1]-0.5), district.width, district.height, linewidth=1, edgecolor='b', facecolor='none'))
 
         plt.draw()
         plt.pause(0.1)

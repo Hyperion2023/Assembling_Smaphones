@@ -29,6 +29,7 @@ class Agent:
 
         for row in self.environment.districts:
             for district in row:
+                district.mounting_points.reverse()
                 district.sort_tasks()
                 for mounting_point_index, mouting_point in enumerate(district.mounting_points):
                     # print(district.ordered_tasks[mounting_point_index])
@@ -147,6 +148,25 @@ class Agent:
                 else:
                     print("RETRACTING")
                     self.worker_retract_arm(worker)
+            self.environment.update_time()
+            if drawFlag:
+                self.environment.draw(agent=self)
+        print("#######################")
+
+        for worker in self.running_workers:
+            print(worker.arm.moves)
+
+
+    def run_plan(self, planned_workers):
+        for worker in planned_workers:
+            print(worker.arm.moves)
+        for current_step in range(self.environment.n_steps):
+            print("[STEP]: " + str(current_step))
+            for worker, planned_worker in zip(self.running_workers, planned_workers):
+                try:
+                    self.environment.move_robotic_arm(worker.arm, planned_worker.arm.moves.pop(0))
+                except IndexError:
+                    return
             self.environment.update_time()
             if drawFlag:
                 self.environment.draw(agent=self)

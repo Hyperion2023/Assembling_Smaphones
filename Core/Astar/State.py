@@ -1,5 +1,6 @@
 import itertools
 import copy
+import numpy as np
 
 
 class State:
@@ -8,6 +9,12 @@ class State:
         self.n_worker = len(workers)
         self.workers = workers
         self.n_step = n_step
+        self.f = None
+
+    def __lt__(self, other):
+        if not isinstance(other, State):
+            raise TypeError
+        return self.f < other.f
 
     def check_boundaries(self, worker, move):
         last_point = worker.arm.path[-1]
@@ -23,13 +30,13 @@ class State:
         else:
             new_point = last_point
 
-        if new_point[0] > self.matrix.width or new_point[0] < 0:
+        if new_point[0] >= np.shape(self.matrix)[1] or new_point[0] < 0:
             return False, (0, 0)
-        if new_point[1] > self.matrix.height or new_point[1] < 0:
+        if new_point[1] >= np.shape(self.matrix)[0] or new_point[1] < 0:
             return False, (0, 0)
-        return new_point
+        return True, new_point
 
-    def is_move_valid(self, workers, moves):
+    def is_move_valid(self, moves):
         """
 
         Args:
@@ -41,7 +48,7 @@ class State:
         """
         retracted_workers = []
         new_points = []
-        for worker, move in zip(workers, moves):
+        for worker, move in zip(self.workers, moves):
             valid, new_point = self.check_boundaries(worker, move)
             if not valid:
                 return False, None
@@ -49,10 +56,10 @@ class State:
             if len(worker.arm.path) >= 2 and new_point == worker.arm.path[-2]:
                 retracted_workers.append(worker)
             # check if new_point is on a mounting point
-            if self.matrix[new_point[0]][new_point[1]] == (1, 0, 0):  # value for mounting point
+            if tuple(self.matrix[new_point[1]][new_point[0]]) == (1, 0, 0):  # value for mounting point
                 return False, None
             # check collision with other arms
-            for other_w in workers:
+            for other_w in self.workers:
                 for p in other_w.arm.path[:-1 if other_w in retracted_workers else len(other_w.arm.path)]:
                     if p == new_point:
                         return False, None
@@ -64,7 +71,7 @@ class State:
             new_points.append(new_point)
 
         new_workers = []
-        for worker, move, point in zip(workers, moves, new_points):
+        for worker, move, point in zip(self.workers, moves, new_points):
             new_worker = copy.deepcopy(worker)
             new_worker.arm.moves.append(move)
             if worker in retracted_workers:
@@ -83,5 +90,5 @@ class State:
             valid, new_state = self.is_move_valid(move)
             if not valid:
                 continue
-            print(move)
+            # print(move)
             yield new_state

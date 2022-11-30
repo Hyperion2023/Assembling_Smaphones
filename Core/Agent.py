@@ -2,6 +2,8 @@ from Core.Worker import Worker
 import random
 
 drawFlag = True
+import time
+sec_time = 10
 
 
 class Agent:
@@ -44,6 +46,9 @@ class Agent:
                             ot.remove(selectedTask)
                         self.environment.tasks.remove(selectedTask)
         self.environment.draw(agent=self)
+        input()
+        time.sleep(sec_time)
+
 
     def random_deploy(self):
         randomMoutingPoints = random.sample(self.environment.mounting_points, self.environment.n_robotic_arms)

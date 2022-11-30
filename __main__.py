@@ -5,7 +5,7 @@ from Core.Astar.Astar import a_star
 from Core.Astar.heuristic import *
 
 if __name__ == "__main__":
-    path = r"./Dataset/d_tight_schedule.txt"
+    path = r"./Dataset/a_example.txt"
 
     # state = State(None, 4)
     # state.get_children()
@@ -15,10 +15,10 @@ if __name__ == "__main__":
     boomer = Agent(env)
     # boomer.environment.show()
     boomer.deploy_arm()
+    #boomer.running_workers[0].
+    #starting_state = State(env.matrix, boomer.running_workers)
 
-    starting_state = State(env.matrix, boomer.running_workers)
-
-    final_state = a_star(starting_state, goal_test, g, h)
-    boomer.run_plan(final_state.workers)
+    #final_state = a_star(starting_state, goal_test, g, h)
+    #boomer.run_plan(final_state.workers)
     # boomer.running_workers[0].my_description()
     # boomer.run_assembly()

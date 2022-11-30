@@ -39,7 +39,7 @@ class Agent:
                     if self.deployed_arms < self.n_total_arms:
                         self.deployed_arms += 1
                         self.running_workers.append(
-                            Worker(self.environment.add_robotic_arm(mouting_point), selectedTask))
+                            Worker(self.environment.add_robotic_arm(mouting_point), selectedTask,self.environment))
                         for ot in district.ordered_tasks:
                             ot.remove(selectedTask)
                         self.environment.tasks.remove(selectedTask)
@@ -55,7 +55,7 @@ class Agent:
             mounting_point_index = currentDistrict.mounting_points.index(mountingpoint)
             selectedTask = currentDistrict.ordered_tasks[mounting_point_index][0]
             self.running_workers.append(
-                Worker(self.environment.add_robotic_arm(mountingpoint), selectedTask))
+                Worker(self.environment.add_robotic_arm(mountingpoint), selectedTask,self.environment))
             for ot in currentDistrict.ordered_tasks:
                 ot.remove(selectedTask)
             self.environment.tasks.remove(selectedTask)
@@ -97,7 +97,7 @@ class Agent:
         worker.reset_action_taken()
 
     def get_to_task_point(self, worker):
-        x_y_distances = worker.task.get_distance_to_first_point(worker.arm.get_position())
+        x_y_distances = worker.task.get_distance_to_first_point(worker.arm.get_position)
         # print("[ARM position]: "+str(worker.arm.get_position())) 
         # print("[TASK position]: "+str(worker.task.get_position()))
         # print("DISTANCES: "+str(x_y_distances[0])+" "+str(x_y_distances[1]))
@@ -106,14 +106,14 @@ class Agent:
         self.worker_move_arm(worker, x_y_distances)
         # print("New [ARM position]: "+str(worker.arm.get_position()))
         # print("New [TASK position]: "+str(worker.task.get_position()))
-        if worker.arm.get_position() == worker.task.get_position():
+        if worker.arm.get_position == worker.task.get_position:
             worker.task.task_target_update()
 
     def worker_retract_arm(self, worker):
 
         retract, newPos = worker.retract()
         print("NEWPOS: ", str(newPos))
-        x_y_distances = worker.task.x_y_distance(worker.arm.get_position(), newPos)
+        x_y_distances = worker.task.x_y_distance(worker.arm.get_position, newPos)
         print(x_y_distances)
         if retract:
             self.worker_move_arm(worker, x_y_distances)

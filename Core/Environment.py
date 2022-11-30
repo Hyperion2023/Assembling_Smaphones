@@ -18,7 +18,7 @@ class Environment:
         self.fig = plt.figure()
         #plt.switch_backend('TkAgg')  # TkAgg (instead Qt4Agg)
         plt.get_backend()
-        self.matrix = np.ones((self.height, self.width, 3))
+        self.matrix = np.ones((self.height, self.width, 3))*0.6
         self.im = plt.imshow(self.matrix, origin="lower", cmap="seismic", interpolation="none")
         self.ax = plt.gca()
         self.ax.set_xticks([x - 0.5 for x in range(1, self.width)])
@@ -187,11 +187,9 @@ class Environment:
             print(" ")
 
     def draw(self, agent=None):
-        self.matrix = np.ones((self.height, self.width, 3))
+        self.matrix = np.ones((self.height, self.width, 3))*0.8
         x = [i for i in range(self.width)]
         y = [ i for i in range(self.height)]
-
-
 
         self.ax.xaxis.set(ticks=np.arange(0, len(x)), ticklabels=x)
         self.ax.yaxis.set(ticks=np.arange(0, len(y)), ticklabels=y)
@@ -202,10 +200,13 @@ class Environment:
         if agent:
             for t in agent.running_workers:
                 for inner in t.task.points:
-                    self.matrix[inner[1], inner[0]] = (0, 0, 1)
+                    self.matrix[inner[1], inner[0]] = (0, 0.5, 1)
         for r in self.robotic_arms:
-            for points in r.path:
-                self.matrix[points[1], points[0]] = (0, 1, 0)
+            for index, points in enumerate(r.path):
+                if index != len(r.path)-1:
+                    self.matrix[points[1], points[0]] = (1, 1-0.4*((index+1)/len(r.path)), 1-0.8*((index+1)/len(r.path)))
+                else:
+                    self.matrix[points[1], points[0]] = (1, 0.5,0)
 
         for m in self.mounting_points:
             self.matrix[m.y, m.x] = (1, 0, 0)
@@ -215,4 +216,4 @@ class Environment:
                 self.ax.add_patch(patches.Rectangle((district.origin[0]-0.5,district.origin[1]-0.5), district.width, district.height, linewidth=1, edgecolor='b', facecolor='none'))
 
         plt.draw()
-        plt.pause(0.1)
+        plt.pause(1)

@@ -16,7 +16,7 @@ class Environment:
         self.n_steps = n_steps
         self.current_step = 0
         self.fig = plt.figure()
-        plt.switch_backend('TkAgg')  # TkAgg (instead Qt4Agg)
+        #plt.switch_backend('TkAgg')  # TkAgg (instead Qt4Agg)
         plt.get_backend()
         self.matrix = np.ones((self.height, self.width, 3))*0.6
         self.im = plt.imshow(self.matrix, origin="lower", cmap="seismic", interpolation="none")
@@ -26,7 +26,7 @@ class Environment:
         #plt.grid()
         mng = plt.get_current_fig_manager()
         ### works on Ubuntu??? >> did NOT working on windows
-        mng.resize(*mng.window.maxsize())
+        #mng.resize(*mng.window.maxsize())
 
         # subdivide the grid in district
         # if the width or height is not a multiple of district_size extend the last district to cover the grid

@@ -46,8 +46,8 @@ class Agent:
                             ot.remove(selectedTask)
                         self.environment.tasks.remove(selectedTask)
         self.environment.draw(agent=self)
-        input()
-        time.sleep(sec_time)
+        # input()
+        # time.sleep(sec_time)
 
 
     def random_deploy(self):

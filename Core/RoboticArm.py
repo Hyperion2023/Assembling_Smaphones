@@ -4,6 +4,7 @@ class RoboticArm:
         self.path = []
         self.moves = []
         self.collision_check = False
+        self.task_points_done = 0
 
     @staticmethod
     def check_action(new_point, environment):

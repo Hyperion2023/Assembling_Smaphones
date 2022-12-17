@@ -1,11 +1,7 @@
 def goal_test(state):
     for worker in state.workers:
-        index = 0
-        for point in worker.task.points:
-            try:
-                index = worker.arm.path.index(point, index)
-            except ValueError:
-                return False
+        if not worker.arm.task_points_done == worker.task.n_points:
+            return False
     return True
 
 
@@ -17,14 +13,9 @@ def h(state):
     distances = [0 for _ in range(state.n_worker)]
     for i, worker in enumerate(state.workers):
         last_point = worker.arm.path[-1]
-        index = 0
-        for point in worker.task.points:
-            try:
-                index = worker.arm.path.index(point, index)
-            except ValueError:
-                distances[i] += manhattan_distance(point, last_point)
-                last_point = point
-
+        for point in worker.task.points[worker.arm.task_points_done:]:
+            distances[i] += manhattan_distance(point, last_point)
+            last_point = point
     return max(distances)
 
 

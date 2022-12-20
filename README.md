@@ -1,4 +1,4 @@
-# Assembling_Smaphones
+# Assembling_Smartphones
 Project for the final assesment of the course *Aritificial Intelligence Fundamentals* of the accademic year 2022/2023. 
 
 ## Problem Introduction

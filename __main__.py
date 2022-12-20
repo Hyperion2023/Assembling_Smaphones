@@ -12,32 +12,40 @@ if __name__ == "__main__":
     # state.get_children()
 
     env = create_Environment(path, district_size=4)
-    # env.draw()
+    #env.draw()
     boomer = Agent(env)
-    # boomer.environment.show()
+    #boomer.environment.show()
     boomer.deploy_arm()
 
-    g=Graph()
-    g.create_graph_from_mat(boomer.environment.matrix)
+    # g=Graph()
+    # g.create_graph_from_mat(boomer.environment.matrix)
     # print("Graph data:")
     # for v in g:
     #     for w in v.get_connections():
     #         vid = v.get_id()
     #         wid = w.get_id()
     #         print(vid, wid, v.get_weight(w))
+
+
+    list_of_graphs=create_graph_from_district(boomer.environment)
+    g=list_of_graphs[0]
+
+
+    print("# OF SUBGRAPHS: "+str(len(list_of_graphs)))
     import time
 
     start = time.time()
-    dijkstra(g, g.get_vertex(2), g.get_vertex(504)) 
+    dijkstra(g, g.get_vertex(1))
     end = time.time()
-    print(end - start)
-    target = g.get_vertex(504)
+    print("Computing Djikstra: " + str(end - start))
+    target = g.get_vertex(14)
     path = [target.get_id()]
     start = time.time()
     shortest(target, path)
     end = time.time()
-    print(end - start)
-    print ("The shortest path : %s",(path[::-1]))
+    print("Finding Path#1: " + str(end - start))
+    print("The shortest path : %s", (path[::-1]))
+
 
     #boomer.running_workers[0].
     #starting_state = State(env.matrix, boomer.running_workers)

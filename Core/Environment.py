@@ -217,4 +217,4 @@ class Environment:
 
         plt.draw()
         plt.pause(1)
-        input()
+        input("WAIT A SECOND PLX")

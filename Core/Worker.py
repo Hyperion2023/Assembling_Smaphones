@@ -6,7 +6,16 @@ from Core.Task import Task
 
 
 class Worker:
-    def __init__(self, arm: RoboticArm, task: Task, env):
+    def __init__(self, arm: RoboticArm, task: Task, env: Environment):
+        """
+        Worker Class, it takes and arm and a task and performs all the required step to complete the task.
+        :param arm: Robotic Arm to cotrol
+        :type arm: RoboticArm
+        :param task: Task to perform
+        :type task: Task
+        :param env: Environment in which the arm moves
+        :type env: Environment
+        """
         self.arm = arm
         self.task = task
         self.plan = []  # TODO: implement in future version

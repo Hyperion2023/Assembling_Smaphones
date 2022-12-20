@@ -4,6 +4,9 @@ class RoboticArm:
         self.path = []
         self.moves = []
         self.collision_check = False
+        self.graph = None
+
+
 
     @staticmethod
     def check_action(new_point, environment):
@@ -24,7 +27,9 @@ class RoboticArm:
         self.mounting_point = mounting_point
         mounting_point.occupied = True
         self.path.append((mounting_point.x, mounting_point.y))
+
     def get_position(self):
         return self.path[-1]
+
     def retract_all(self):
         return 0

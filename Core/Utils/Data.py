@@ -1,17 +1,20 @@
+import Core.Environment
 from Core.Environment import Environment
 
 import numpy as np
-def create_Environment(file_path: str, district_size=2):
-        
+def create_Environment(file_path: str, district_size: int =2)->Core.Environment.Environment:
+    """
+    Read the input file and create the environment. Generate several districts based on district_size.
+    :param file_path: Path to the input file.
+    :param district_size: Size of the districts.
+    :return: Complete environment.
+    """
     with open(file_path, "r") as f:
         lines = f.readlines()
 
         width = int((lines[0].split(" "))[0])
         height = int((lines[0].split(" "))[1])
         number_of_arms = int((lines[0].split(" "))[2])
-
-
-
 
         number_of_mouting_points = int((lines[0].split(" "))[3])
         number_of_total_steps = int((lines[0].split(" "))[5])

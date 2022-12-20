@@ -6,6 +6,9 @@ class RoboticArm:
     Class that represents a Robotic arm. It can mount it and check if the action si valid.
     """
     def __init__(self):
+        """
+        Constructor of the RoboticArm class.
+        """
         self.mounting_point = None
         self.path = []
         self.moves = []

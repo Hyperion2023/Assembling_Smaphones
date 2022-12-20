@@ -1,8 +1,19 @@
 import sys
 
+import numpy
+
+import Core
+
 
 class Vertex:
-    def __init__(self, node):
+    """
+    Vertex class used to compute Dijkstra's shortest path algorithm.
+    """
+    def __init__(self, node: int):
+        """
+        Constructor for the Vertex class.
+        :param node: ID of the vertex.
+        """
         self.id = node
         self.adjacent = {}
         # Set distance to infinity for all nodes
@@ -12,34 +23,41 @@ class Vertex:
         # Predecessor
         self.previous = None
 
-    def add_neighbor(self, neighbor, weight=0):
+    def add_neighbor(self, neighbor: int, weight: int = 0):
+        """
+        Add a neighbor to the vertex.
+        :param neighbor: ID of the neighbor.
+        :param weight: Weight of the neighbor. (Default = 0)
+        """
         self.adjacent[neighbor] = weight
 
+    @property
     def get_connections(self):
         return self.adjacent.keys()
 
+    @property
     def get_id(self):
         return self.id
 
-    def get_weight(self, neighbor):
+    def get_weight(self, neighbor: int):
         return self.adjacent[neighbor]
 
-    def set_distance(self, dist):
+    def set_distance(self, dist: int):
         self.distance = dist
 
     def get_distance(self):
         return self.distance
 
-    def set_previous(self, prev):
+    def set_previous(self, prev: int):
         self.previous = prev
 
     def set_visited(self):
         self.visited = True
 
-    def __lt__(self, other):
+    def __lt__(self, other: object):
         return self.distance < other.distance
 
-    def __gt__(self, other):
+    def __gt__(self, other: object):
         return self.distance > other.distance
 
     def __str__(self):
@@ -47,11 +65,21 @@ class Vertex:
 
 
 class Graph:
+    """
+    Graph class used to compute Dijkstra's shortest path algorithm.
+    """
     def __init__(self):
+        """
+        Constructor for the Graph class.
+        """
         self.vert_dict = {}
         self.num_vertices = 0
 
-    def create_graph_from_mat(self, matrix):
+    def create_graph_from_mat(self, matrix: numpy.matrix):
+        """
+        Create a graph from a matrix.
+        :param matrix: Matrix to create the graph from.
+        """
         cur_index = 0
 
         for row_index, row in enumerate(matrix):
@@ -93,19 +121,34 @@ class Graph:
     def __iter__(self):
         return iter(self.vert_dict.values())
 
-    def add_vertex(self, node):
+    def add_vertex(self, node: int):
+        """
+        Add a vertex to the graph.
+        :param node: Node to add.
+        """
         self.num_vertices = self.num_vertices + 1
         new_vertex = Vertex(node)
         self.vert_dict[node] = new_vertex
         return new_vertex
 
-    def get_vertex(self, n):
+    def get_vertex(self, n: int):
+        """
+        Get a vertex from the graph.
+        :param n: Node to get.
+        """
+
         if n in self.vert_dict:
             return self.vert_dict[n]
         else:
             return None
 
-    def add_edge(self, frm, to, cost=0):
+    def add_edge(self, frm: int, to:int, cost:int=0):
+        """
+        Add an edge to the graph.
+        :param frm: First node to add.
+        :param to: Second node to add.
+        :param cost: Cost of the edge.
+        """
         if frm not in self.vert_dict:
             self.add_vertex(frm)
         if to not in self.vert_dict:
@@ -115,19 +158,32 @@ class Graph:
         self.vert_dict[to].add_neighbor(self.vert_dict[frm], cost)
 
     def get_vertices(self):
+        """
+        Get all vertices in the graph.
+        :return: List of vertices.
+        """
         return self.vert_dict.keys()
 
     def set_previous(self, current):
+        """
+        Set the previous node in the graph.
+        :param current: Previous node.
+        """
         self.previous = current
 
     def get_previous(self, current):
         return self.previous
 
 
-def shortest(v, path):
-    ''' make shortest path from v.previous'''
+def shortest(v, path:int):
+    """
+    Get the shortest path from v to path.
+    :param v: Source vertex.
+    :param path: Destination vertex.
+    :return: Path.
+    """
     if v.previous:
-        path.append(v.previous.get_id())
+        path.append(v.previous.get_id)
         shortest(v.previous, path)
     return
 
@@ -135,7 +191,12 @@ def shortest(v, path):
 import heapq
 
 
-def create_graph_from_district(environment):
+def create_graph_from_district(environment:Core.Environment.Environment):
+    """
+    Generate a list of graphs for the districts in the environment.
+    :param environment: Environment.
+    :return: List of graphs.
+    """
     list_of_graphs=[]
     for row in environment.districts:
         for district in row:
@@ -148,6 +209,13 @@ def create_graph_from_district(environment):
 
     return list_of_graphs
 def dijkstra(aGraph, start):
+    """
+    Given a Graph, compute Dijkstra's shortest path algorithm, given a starting vertex. This will generate the shortest
+    path from start to all other vertices. With the function the shortest then any path starting in the start vertex can
+    be easily computed.
+    :param aGraph: Graph associated with a portion, or totality of the matrix.
+    :param start: Starting vertex.
+    """
     print("Dijkstra's shortest path")
     # Set the distance for the start node to zero
     start.set_distance(0)

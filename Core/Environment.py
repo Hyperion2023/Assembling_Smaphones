@@ -217,3 +217,4 @@ class Environment:
 
         plt.draw()
         plt.pause(1)
+        input()

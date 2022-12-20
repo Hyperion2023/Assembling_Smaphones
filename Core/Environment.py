@@ -5,6 +5,7 @@ from Core.Task import Task
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as patches
+from Core.Utils.conversion import *
 
 class Environment:
     def __init__(self, width, height, n_steps, n_robotic_arms, district_size=17):
@@ -198,20 +199,20 @@ class Environment:
 
         for t in self.tasks:
             for inner in t.points:
-                self.matrix[inner[1], inner[0]] = (0, 0, 1)
+                self.matrix[state_to_matrix(inner)] = (0, 0, 1)
         if agent:
             for t in agent.running_workers:
                 for inner in t.task.points:
-                    self.matrix[inner[1], inner[0]] = (0, 0.5, 1)
+                    self.matrix[state_to_matrix(inner)] = (0, 0.5, 1)
         for r in self.robotic_arms:
             for index, points in enumerate(r.path):
                 if index != len(r.path)-1:
-                    self.matrix[points[1], points[0]] = (1, 1-0.4*((index+1)/len(r.path)), 1-0.8*((index+1)/len(r.path)))
+                    self.matrix[state_to_matrix(points)] = (1, 1-0.4*((index+1)/len(r.path)), 1-0.8*((index+1)/len(r.path)))
                 else:
-                    self.matrix[points[1], points[0]] = (1, 0.5,0)
+                    self.matrix[state_to_matrix(points)] = (1, 0.5, 0)
 
         for m in self.mounting_points:
-            self.matrix[m.y, m.x] = (1, 0, 0)
+            self.matrix[state_to_matrix([m.x, m.y])] = (1, 0, 0)
         self.im.set_data(self.matrix)
         for row in self.districts:
             for district in row:

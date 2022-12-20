@@ -1,7 +1,8 @@
 import itertools
 import copy
 import numpy as np
-
+from Core.Utils.conversion import *
+import random
 
 class State:
     def __init__(self, matrix, workers, n_step=0):
@@ -10,11 +11,16 @@ class State:
         self.workers = workers
         self.n_step = n_step
         self.f = None
+        self.g = None
+        self.h = None
 
     def __lt__(self, other):
         if not isinstance(other, State):
             raise TypeError
-        return self.f < other.f
+        if self.f == other.f:
+            return self.h < other.h
+        else:
+            return self.f < other.f
 
     def check_boundaries(self, worker, move):
         last_point = worker.arm.path[-1]
@@ -56,11 +62,11 @@ class State:
             if len(worker.arm.path) >= 2 and new_point == worker.arm.path[-2]:
                 retracted_workers.append(worker)
             # check if new_point is on a mounting point
-            if tuple(self.matrix[new_point[1]][new_point[0]]) == (1, 0, 0):  # value for mounting point
+            elif tuple(self.matrix[state_to_matrix(new_point)]) == (1, 0, 0):  # value for mounting point
                 return False, None
             # check collision with other arms
             for other_w in self.workers:
-                for p in other_w.arm.path[:-1 if other_w in retracted_workers else len(other_w.arm.path)]:
+                for p in other_w.arm.path[:-2 if other_w in retracted_workers else len(other_w.arm.path)]:
                     if p == new_point:
                         return False, None
 
@@ -74,17 +80,24 @@ class State:
         for worker, move, point in zip(self.workers, moves, new_points):
             new_worker = copy.deepcopy(worker)
             new_worker.arm.moves.append(move)
+
             if worker in retracted_workers:
                 new_worker.arm.path.pop()
             else:
                 new_worker.arm.path.append(point)
+
+            if new_worker.arm.task_points_done < new_worker.task.n_points and new_worker.arm.path[-1] == new_worker.task.points[new_worker.arm.task_points_done]:
+                new_worker.arm.task_points_done += 1
+
             new_workers.append(new_worker)
 
         return True, State(self.matrix, new_workers, self.n_step + 1)
 
     def get_children(self):
         move_set = [["U", "D", "L", "R", "W"] for _ in range(self.n_worker)]
-        for move in itertools.product(*move_set):
+        moves = list(itertools.product(*move_set))
+        random.shuffle(moves)
+        for move in moves:
             if move == tuple(["W" for _ in range(self.n_worker)]):
                 continue
             valid, new_state = self.is_move_valid(move)

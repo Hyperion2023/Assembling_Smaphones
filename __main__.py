@@ -4,6 +4,7 @@ from Core.Astar.State import State
 from Core.Astar.Astar import a_star
 from Core.Astar.heuristic import *
 from Core.Utils.Dijkstra import *
+import time
 
 if __name__ == "__main__":
     path = r"./Dataset/a_example.txt"

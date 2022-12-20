@@ -1,3 +1,5 @@
+from Core.Utils.distances import manhattan_distance, x_y_distance
+
 class Task:
     def __init__(self, value=0, n_points=0):
         self.value = value
@@ -9,13 +11,6 @@ class Task:
     def show_task(self):
         for i in self.points:
             print(i)
-    @staticmethod
-    def manhattan_distance(p1, p2):
-        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
-
-    @staticmethod
-    def x_y_distance(p1, p2):
-        return (p2[0] - p1[0], p2[1] - p1[1])
 
     def add_point(self, x, y):
         if len(self.points) == self.n_points:
@@ -27,13 +22,13 @@ class Task:
         if len(self.points) == 0:
             return
         last_point = self.points[-1]
-        self.distance += self.manhattan_distance(last_point, (x, y))
+        self.distance += manhattan_distance(last_point, (x, y))
 
     def get_task_score(self, mounting_point):
         first_point = self.points[0]
-        self.score = self.value / (
-                self.distance + self.manhattan_distance(first_point, (mounting_point.x, mounting_point.y)))
-        # print("SCORE: "+str(self.score))
+        self.score= self.value / (
+                self.distance + manhattan_distance(first_point, (mounting_point.x, mounting_point.y)))
+        #print("SCORE: "+str(self.score))
         return self.score
 
     def task_completed(self):
@@ -65,3 +60,5 @@ class Task:
     @property
     def get_position(self):
         return self.points[0]
+
+    

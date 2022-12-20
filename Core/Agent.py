@@ -1,8 +1,8 @@
 from Core.Worker import Worker
 import random
+import time
 
 drawFlag = True
-import time
 sec_time = 10
 
 
@@ -49,8 +49,6 @@ class Agent:
 
         # input()
         # time.sleep(sec_time)
-
-
 
     def random_deploy(self):
         randomMoutingPoints = random.sample(self.environment.mounting_points, self.environment.n_robotic_arms)

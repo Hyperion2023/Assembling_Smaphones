@@ -5,11 +5,11 @@ import numpy as np
 def get_weight_population_by_fitness(population: list, fitness_function) -> list:
 	"""
 	Computes for each configuration the probability to be selected (according to the fitness function)
-	and returns the configurations (ordered in ascending order)
-	:param population: list, list of routers placement
-	:param fitness_function: function that, taken a routers placement as its parameter, returns its value
-	:return: list of tuples, for each tuple the first element contains the routers placement, while the second element
-		corresponds to its value according to the fitness function
+	and returns the configurations (ordered in descending order)
+	:param population: list of state that compose the population
+	:param fitness_function: function to calculate the fitness score of a state
+	:return: list of tuples, for each tuple the first element contains the state, while the second element
+		corresponds to its fitness score
 	"""
 	# computing for each configuration the probability to be selected, according to the fitness function
 	weighted_population = [
@@ -27,9 +27,9 @@ def choose_parents_population(population: list, fitness_function) -> tuple:
 	"""
 	Choose 2 parents in the population. A member of the population probability to be picked is proportional to its
 	value according to the fitness function.
-	:param population: list, list of routers placement
-	:param fitness_function: function that, taken a routers placement as its parameter, returns its value
-	:return: tuple, a couple of randomly selected configurations weighted by their fitness value
+	:param population: list, list of state
+	:param fitness_function: function to calculate the fitness score of a state
+	:return: tuple, a couple of randomly selected states weighted by their fitness value
 	"""
 	weighted_population = get_weight_population_by_fitness(population, fitness_function)
 
@@ -55,14 +55,13 @@ def genetic_algorithm(
 		verbose: bool = False
 ) -> np.array:
 	"""
-	:param building_matrix: array of arrays, indicates where are void, wall and target cells
-	:param population: list, list of configurations to use as a starting points
-	:param fitness_function: function, function used to evaluate the fitness of a configuration
+	:param population: list, list of states to use as a starting points
+	:param fitness_function: function, function used to evaluate the fitness of a state
 	:param mutation_probability: float, probability of a random mutation. If not specified, a random
 		probability is generated for every reproduction cycle
 	:param max_iter: int, maximum number of iterations cycles
 	:param verbose: bool
-	:return: the best individual in population, according to fitness
+	:return: the best state in population, according to fitness
 	"""
 	if not fitness_function:
 		fitness_function = lambda x: x.fitness()

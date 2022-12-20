@@ -1,27 +1,33 @@
 import itertools
 import math
-
+import random
 import matplotlib.pyplot as plt
 import numpy as np
-from Core.Environment import Environment
-import random
+
+from Core import Environment
 from Core.Utils.conversion import state_to_matrix
-from District import District
+from .District import District
 
 
-class DisjoinedSubdivider:
-	def __init__(self, env: Environment, n_district):
+class DisjoinedSubdivision:
+	"""
+	Class that represent a subdivision of the environment grid in disjoined rectangular districts
+	"""
+	def __init__(self, env: Environment, n_district: int):
 		self.env = env
 		self.n_district = n_district
-		self.centers = []
+		self._centers = []
 		self.districts = []
 
 	def random_init(self):
+		"""
+		Initialize randomly the position of centers of districts
+		"""
 		for _ in range(self.n_district):
 			center = (random.randint(0, self.env.width - 1), random.randint(0, self.env.height - 1))
-			while center in self.centers:
+			while center in self._centers:
 				center = (random.randint(0, self.env.width - 1), random.randint(0, self.env.height - 1))
-			self.centers.append(center)
+			self._centers.append(center)
 
 	def draw_districts(self):
 		fig, ax = plt.subplots()
@@ -38,7 +44,11 @@ class DisjoinedSubdivider:
 		plt.show()
 
 	def district_from_centers(self):
-		district = [District(self.env, c, 0, 0, 0, 0) for c in self.centers]
+		"""
+		Generate the districts from the position of the centers
+		:return: the generated districts
+		"""
+		district = [District(self.env, c, 0, 0, 0, 0) for c in self._centers]
 		self.districts = district
 		updated = True
 		while updated:
@@ -61,7 +71,36 @@ class DisjoinedSubdivider:
 		# self.draw_districts()
 		return district
 
-	def get_score(self):
+	def reproduce(self, state):
+		"""
+		Combine the representation of the subdivision with another subdivision (for genetic algorithm)
+		:param state:
+		:return: the new state obtained by the combination of the current state with the state passed
+		"""
+		starting_point = 0
+		end_point = self.n_district - 1
+		split_point = random.randint(starting_point, end_point)
+		new_centers = self._centers[0:split_point] + state._centers[split_point:]
+		new_state = DisjoinedSubdivision(self.env, self.n_district)
+		new_state._centers = new_centers
+		return new_state
+
+	def mutate(self):
+		"""
+		Mutate the current state changing the position of one center of a district
+		:return: the current state modified
+		"""
+		mutating_district = random.randint(0, self.n_district - 1)
+		self._centers[mutating_district] = (
+			random.randint(0, self.env.width - 1), random.randint(0, self.env.height - 1))
+		return self
+
+	def fitness(self) -> float:
+		"""
+		Calculate the fitness function of the current subdivision. The fitness is calculated as the total number of task
+		covered by the current subdivision, multiplied by the entropy of the distribution of the tasks in the districts.
+		:return: the value of fitness calculated
+		"""
 		if not self.districts:
 			self.district_from_centers()
 		district_task = {d: [] for d in self.districts}
@@ -86,21 +125,3 @@ class DisjoinedSubdivider:
 		# min_task_dist = min([len(tasks) for tasks in district_task.values()])
 		# max_task_dist = max([len(tasks) for tasks in district_task.values()])
 		return total_task_covered * entropy
-
-	def reproduce(self, state2):
-		starting_point = 0
-		end_point = self.n_district - 1
-		split_point = random.randint(starting_point, end_point)
-		new_centers = self.centers[0:split_point] + state2.centers[split_point:]
-		new_state = DisjoinedSubdivider(self.env, self.n_district)
-		new_state.centers = new_centers
-		return new_state
-
-	def mutate(self):
-		mutating_district = random.randint(0, self.n_district - 1)
-		self.centers[mutating_district] = (
-			random.randint(0, self.env.width - 1), random.randint(0, self.env.height - 1))
-		return self
-
-	def fitness(self):
-		return self.get_score()

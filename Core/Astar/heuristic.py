@@ -1,24 +1,34 @@
-def goal_test(state):
+from Core.Astar import State
+from Core.Utils.distances import manhattan_distance
+
+
+def goal_test(state: State) -> bool:
+    """
+    Check if the state passed is a goal state (where all task point have been collected
+    :param state: the state to check
+    :return: True if the state is a goal state False otherwise
+    """
     for worker in state.workers:
-        if not worker.arm.task_points_done == worker.task.n_points:
+        if not worker.task_points_done == worker.task.n_points:
             return False
     return True
 
 
-def g(state):
+def g(state: State) -> int:
     return state.n_step
 
 
-def h(state):
+def h(state: State) -> int:
+    """
+    Calculate the heuristic value for the state passed, which is the max of the manhattan distances remaining
+    to every arm to complete the task
+    :param state: the state to calculate the heuristic on
+    :return: the value of the heuristic
+    """
     distances = [0 for _ in range(state.n_worker)]
     for i, worker in enumerate(state.workers):
         last_point = worker.arm.path[-1]
-        for point in worker.task.points[worker.arm.task_points_done:]:
+        for point in worker.task.points[worker.task_points_done:]:
             distances[i] += manhattan_distance(point, last_point)
             last_point = point
     return max(distances)
-
-
-def manhattan_distance(p1, p2):
-    return abs(p2[0] - p1[0]) + abs(p2[1] - p1[1])
-

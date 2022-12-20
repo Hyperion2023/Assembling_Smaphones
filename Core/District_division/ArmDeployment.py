@@ -3,26 +3,80 @@ import math
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from Core.Environment import Environment
+
+from Core import Environment
 from Core.Utils.conversion import state_to_matrix
 from Core.Utils.distances import manhattan_distance, x_y_distance
-from District import District
+from .District import District
 
 
-class ArmDeployer:
+class ArmDeployment:
+	"""
+	Class to represent an assignment of arm to mounting points, with derived rectangular districts
+	"""
 	def __init__(self, env: Environment, max_district_size: int, alpha=1):
-		self.env = env
-		self.n_arm = self.env.n_robotic_arms
+		self._env = env
+		self._n_arm = self.env.n_robotic_arms
 		self.max_district_size = max_district_size
 		self.alpha = alpha
 		self.selected_mounting_point = []
 		self.mounting_point_tasks = None
 		self.districts = None
 
+	@property
+	def env(self):
+		"""The environment
+		"""
+		return self._env
+
+	@property
+	def n_arm(self):
+		"""The number of arms to deploy
+		"""
+		return self._n_arm
+
+	@property
+	def max_district_size(self):
+		"""Max distance of the boundaries of the district from the center of the district
+		"""
+		return self.max_district_size
+
+	@max_district_size.setter
+	def max_district_size(self, value: int):
+		self.max_district_size = value
+
+	@property
+	def alpha(self):
+		"""Weight coefficient of the intersection of districts in the fitness function
+		"""
+		return self.alpha
+
+	@alpha.setter
+	def alpha(self, value: float):
+		self.alpha = value
+
+	@property
+	def districts(self):
+		"""The districts obtained after the deployment of the arms to the mounting points
+		"""
+		return self.districts
+
+	@districts.setter
+	def districts(self, value: list):
+		self.districts = value
+
 	def random_init(self):
+		"""
+		Randomly choose the mounting point to deploy the arm on
+		"""
 		self.selected_mounting_point = random.sample(self.env.mounting_points, k=self.n_arm)
 
-	def get_closest(self, p):
+	def get_closest(self, p: tuple):
+		"""
+		get the closest mounting point to a given point p
+		:param p:
+		:return: the closest mounting point
+		"""
 		closest = self.selected_mounting_point[0]
 		min_distance = manhattan_distance(p, (self.selected_mounting_point[0].x, self.selected_mounting_point[0].y))
 		for m_point in self.selected_mounting_point[1:]:
@@ -33,11 +87,18 @@ class ArmDeployer:
 		return closest
 
 	def assign_task(self):
+		"""
+		Assign each task to the district of the mounting point closest to the first point of the task
+		"""
 		self.mounting_point_tasks = {m: [] for m in self.selected_mounting_point}
 		for task in self.env.tasks:
 			self.mounting_point_tasks[self.get_closest(task.points[0])].append(task)
 
 	def calculate_districts(self):
+		"""
+		Get the district from the mounting point chosen considering only the task that are entirely contained
+		in the district they have been assigned too.
+		"""
 		self.districts = []
 		self.assign_task()
 		updated_m_point_tasks = {m: [] for m in self.selected_mounting_point}
@@ -80,7 +141,13 @@ class ArmDeployer:
 
 		self.mounting_point_tasks = updated_m_point_tasks
 
-	def check_intersection_area(self, d1: District, d2: District):
+	def check_intersection_area(self, d1: District, d2: District) -> float:
+		"""
+		Get intersection area between two districts
+		:param d1:
+		:param d2:
+		:return: the area of intersection
+		"""
 		dist_x = min(d1.center[0] + d1.right + 1, d2.center[0] + d2.right + 1) - max(d1.center[0] - d1.left, d2.center[0] - d2.left)
 		dist_y = min(d1.center[1] + d1.up + 1, d2.center[1] + d2.up + 1) - max(d1.center[1] - d1.down, d2.center[1] - d2.down)
 
@@ -89,18 +156,27 @@ class ArmDeployer:
 		else:
 			return 0
 
-	def get_IoU(self):
+	def get_intersection_over_total(self) -> float:
+		"""
+		calculate the sum of all the intersection areas present in the current district subdivision divided by
+		the area of the environment grid
+		:return: the intersection area divided by the total area
+		"""
 		total_inter_area = 0
-		total_area = 0
 		if not self.districts:
 			self.calculate_districts()
 		for i in range(len(self.districts)):
-			total_area += (self.districts[i].right + self.districts[i].left + 1) * (self.districts[i].up + self.districts[i].down + 1)
 			for d in self.districts[i:]:
 				total_inter_area += self.check_intersection_area(self.districts[i], d)
-		return total_inter_area / total_area
+		return total_inter_area / (self.env.width * self.env.height)
 
-	def fitness(self):
+	def fitness(self) -> float:
+		"""
+		Calculate the fitness function of the current districts subdivision. The fitness is calculated as the total number of task
+		covered by the current subdivision, multiplied by the entropy of the distribution of the tasks in the districts,
+		multiplied by e^(-alpha*IoT) to penalize the subdivision with high inetersection areas.
+		:return: the value of fitness calculated
+		"""
 		if not self.districts:
 			self.calculate_districts()
 		total_task_covered = sum([len(tasks) for tasks in self.mounting_point_tasks.values()])
@@ -109,19 +185,28 @@ class ArmDeployer:
 		else:
 			coverange_distrib = [len(tasks) / total_task_covered for tasks in self.mounting_point_tasks.values()]
 		entropy = - sum([p * (math.log(p) if p != 0 else 0) for p in coverange_distrib])
-		IoU = self.get_IoU()
-		return total_task_covered * entropy * math.exp(-self.alpha * IoU)
+		IoT = self.get_intersection_over_total()
+		return total_task_covered * entropy * math.exp(-self.alpha * IoT)
 
-	def reproduce(self, state2):
+	def reproduce(self, state):
+		"""
+		Combine the current mounting points chosen with another chose of mounting point (for genetic algorithm)
+		:param state: the state representing the other chose of mounting point
+		:return: the new chose of mounting points obtained by the combination of the current state with the state passed
+		"""
 		new_selected_mounting_point = set(self.selected_mounting_point)
-		for m in state2.selected_mounting_point:
+		for m in state.selected_mounting_point:
 			new_selected_mounting_point.add(m)
 		new_selected_mounting_point = random.sample(list(new_selected_mounting_point), k=self.n_arm)
-		new_state = ArmDeployer(self.env, random.choice([self.max_district_size, state2.max_district_size]))
+		new_state = ArmDeployment(self.env, random.choice([self.max_district_size, state.max_district_size]))
 		new_state.selected_mounting_point = new_selected_mounting_point
 		return new_state
 
 	def mutate(self):
+		"""
+		Mutate the current state changing one of the chosen mounting points
+		:return: the current state modified
+		"""
 		available_mounting_points = []
 		for m in self.env.mounting_points:
 			if m not in self.selected_mounting_point:

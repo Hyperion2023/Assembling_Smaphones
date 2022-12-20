@@ -1,3 +1,6 @@
+from Core import MountingPoint
+
+
 class RoboticArm:
     def __init__(self):
         self.mounting_point = None

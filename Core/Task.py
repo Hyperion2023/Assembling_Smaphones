@@ -1,4 +1,6 @@
 from Core.Utils.distances import manhattan_distance, x_y_distance
+from Core import MountingPoint
+
 
 class Task:
     def __init__(self, value=0, n_points=0):

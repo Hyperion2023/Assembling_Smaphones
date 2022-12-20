@@ -1,8 +1,5 @@
-from Core.Environment import Environment
-from Core.MoutingPoint import MountingPoint
+from Core import Environment, RoboticArm, Task
 from Core.Planner.Path import OptimalPath
-from Core.RoboticArm import RoboticArm
-from Core.Task import Task
 
 
 class Worker:
@@ -18,6 +15,7 @@ class Worker:
         """
         self.arm = arm
         self.task = task
+        self.task_points_done = 0
         self.plan = []  # TODO: implement in future version
         self.action_taken = False
         self.env = env

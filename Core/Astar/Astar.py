@@ -1,9 +1,19 @@
 from queue import PriorityQueue
 import heapq
-from Core.Astar.State import State
+from Core.Astar import State
 
 
-def a_star(starting_state: State, goal_test, g, h, max_fringe_size=-1, fringe_size_tol=-1):
+def a_star(starting_state: State, goal_test: callable, g: callable, h: callable, max_fringe_size: int = -1, fringe_size_tol: int = -1):
+    """
+    A star search algorithm implementation
+    :param starting_state: the starting state of the search
+    :param goal_test: function to perform goal test
+    :param g: function to calculate the path cost
+    :param h: function to calculate the heuristic
+    :param max_fringe_size:
+    :param fringe_size_tol:
+    :return: the goal state found by the A star algorithm or None if no goal state is found
+    """
     fringe = PriorityQueue(0)
     # fringe = []
     starting_state.g = g(starting_state)
@@ -34,7 +44,8 @@ def a_star(starting_state: State, goal_test, g, h, max_fringe_size=-1, fringe_si
             child.g = g(child)
             child.h = h(child)
             child.f = child.g + child.h
-            # if child.f == current_state.f:
+            # if child.f > current_state.f:
+            #     continue
             fringe.put(child)
             # heapq.heappush(fringe, child)
     return None

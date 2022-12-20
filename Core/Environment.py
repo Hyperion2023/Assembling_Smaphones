@@ -1,11 +1,10 @@
-from Core.District import District
-from Core.RoboticArm import RoboticArm
-from Core.MoutingPoint import MountingPoint
-from Core.Task import Task
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as patches
+
+from Core import District, RoboticArm, MountingPoint, Task
 from Core.Utils.conversion import *
+
 
 class Environment:
     def __init__(self, width, height, n_steps, n_robotic_arms, district_size=17):
@@ -17,14 +16,14 @@ class Environment:
         self.n_steps = n_steps
         self.current_step = 0
         self.fig = plt.figure()
-        #plt.switch_backend('TkAgg')  # TkAgg (instead Qt4Agg)
+        # plt.switch_backend('TkAgg')  # TkAgg (instead Qt4Agg)
         plt.get_backend()
         self.matrix = np.ones((self.height, self.width, 3))*0.6
         self.im = plt.imshow(self.matrix, origin="lower", cmap="seismic", interpolation="none")
         self.ax = plt.gca()
         self.ax.set_xticks([x - 0.5 for x in range(1, self.width)])
         self.ax.set_yticks([y - 0.5 for y in range(1, self.height)])
-        #plt.grid()
+        # plt.grid()
         mng = plt.get_current_fig_manager()
         ### works on Ubuntu??? >> did NOT working on windows
         #mng.resize(*mng.window.maxsize())
@@ -33,7 +32,7 @@ class Environment:
         # if the width or height is not a multiple of district_size extend the last district to cover the grid
         for i in range(0, self.width, district_size):
             row = []
-            if self.width - i <  district_size:
+            if self.width - i < district_size:
                 break
             if self.width - i < 2 * district_size:
                 size_x = self.width - i
@@ -77,8 +76,8 @@ class Environment:
         if len(self.robotic_arms) == self.n_robotic_arms:
             raise ValueError("max number of robotic arm already reached!")
 
-        if mounting_point.occupied:
-            raise ValueError("mounting point already occupied")
+        # if mounting_point.occupied:
+        #     raise ValueError("mounting point already occupied")
 
         arm = RoboticArm()
         arm.mount(mounting_point)

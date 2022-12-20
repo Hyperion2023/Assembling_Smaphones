@@ -189,6 +189,12 @@ class Environment:
     def draw(self, agent=None):
         self.matrix = np.ones((self.height, self.width, 3))*0.8
 
+        x = [i for i in range(self.width)]
+        y = [ i for i in range(self.height)]
+
+
+        self.ax.xaxis.set(ticks=np.arange(0, len(x)), ticklabels=x)
+        self.ax.yaxis.set(ticks=np.arange(0, len(y)), ticklabels=y)
 
         for t in self.tasks:
             for inner in t.points:
@@ -213,3 +219,6 @@ class Environment:
 
         plt.draw()
         plt.pause(1)
+
+        input("WAIT A SECOND PLX")
+

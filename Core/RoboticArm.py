@@ -2,6 +2,9 @@ from Core import MountingPoint
 
 
 class RoboticArm:
+    """
+    Class that represents a Robotic arm. It can mount it and check if the action si valid.
+    """
     def __init__(self):
         self.mounting_point = None
         self.path = []
@@ -9,30 +12,13 @@ class RoboticArm:
         self.collision_check = False
         self.graph = None
 
-
-
-    @staticmethod
-    def check_action(new_point, environment):
-        if new_point[0] > environment.widht or new_point[0] < 0:
-            return False
-        if new_point[1] > environment.height or new_point[1] < 0:
-            return False
-        for m in environment.mounting_points:
-            if m == new_point:
-                return False
-
-        for r in environment.robotic_arms:
-            for p in r.path:
-                if p == new_point:
-                    return False
-
-    def mount(self, mounting_point):
+    def mount(self, mounting_point: MountingPoint):
+        """
+        Method that mounts an arm on a mounting point.
+        :param mounting_point: Mouting Point.
+        """
         self.mounting_point = mounting_point
-        mounting_point.occupied = True
         self.path.append((mounting_point.x, mounting_point.y))
 
     def get_position(self):
         return self.path[-1]
-
-    def retract_all(self):
-        return 0

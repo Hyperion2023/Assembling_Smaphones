@@ -1,4 +1,4 @@
-from Core.Worker import Worker
+from Core import Worker, Environment
 import random
 import time
 
@@ -7,27 +7,49 @@ sec_time = 10
 
 
 class Agent:
-    def __init__(self, environment):
+    """
+    Class that represents the Agent responsbile of supervising all the workers in the environment.
+    """
+
+    def __init__(self, environment: Environment):
+        """
+        Agent Class constructor. It imports the environment in which the agent has control.
+        :param environment: Collection of all the knowledge the Agent can access to in order to plan and move the arms.
+        """
         self.environment = environment
         self.n_total_arms = self.environment.n_robotic_arms
         self.running_workers = []
         self.deployed_arms = 0
 
     def update_step(self):
+        """
+        Method that updates the step counter, ending a step t and starts the step t+1.
+        """
         self.environment.update_time()
         self.n_total_arms = self.environment.n_robotic_arms
 
     def update_moved_arms(self):
+        """
+        Update the counter of total arms still not moved.
+        """
         self.n_total_arms -= 1
 
     def all_arms_moved_in_current_step(self):
+        """
+        Method that checks if all the arms where moved at the current step, or not
+        :return: Returns True if all the arms where moved, False otherwise.
+        """
         if self.n_total_arms == 0:
             return True
         else:
             return False
 
     def deploy_arm(self):
-        # TODO: implement distance deployment strat
+        """
+        This method deploys the available arms over the available mounting points in an iterative way: the arms are
+        deployed starting from the origin go the grid on all the available mounting points in order, based on the
+        columns.
+        """
 
         for row in self.environment.districts:
             for district in row:
@@ -47,10 +69,17 @@ class Agent:
                         self.environment.tasks.remove(selectedTask)
         self.environment.draw(agent=self)
 
+        # TODO: implement distance deployment strat
+
         # input()
         # time.sleep(sec_time)
 
     def random_deploy(self):
+        """
+        This method deploys the available arms over the available mounting points in a random way: a subset of mounting
+        points is selected from all the available ones (without duplication) and the arms are deployed on this subset.
+        The number of samples mounting points corresponds to the number of available arms.
+        """
         randomMoutingPoints = random.sample(self.environment.mounting_points, self.environment.n_robotic_arms)
         for row in self.environment.districts:
             for district in row:
@@ -67,102 +96,26 @@ class Agent:
         self.deployed_arms = self.n_total_arms
         self.environment.draw(agent=self)
 
-    def worker_move_arm(self, worker, x_y_distances, retraction=False):
+    def worker_move_arm(self, worker: Worker):
+        """
+        Method that moves the arm of the worker according to the plan.
+        :param worker: The worker controlling the arm to move.
+        """
         print("MOVE ARM")
-        arm_moved = False
-        if not worker.action_taken:
-            ##Check su o giu
-            if x_y_distances[1] != 0:
-
-                if x_y_distances[1] > 0:
-                    arm_moved = self.environment.move_robotic_arm(worker.arm, "U")
-                    print("[MOVE]: U")
-                else:
-                    arm_moved = self.environment.move_robotic_arm(worker.arm, "D")
-                    print("[MOVE]: D")
-            # print("ARM MOVED: \t\t"+str(arm_moved))
-
-            if arm_moved:
-                worker.take_action()
-        if not worker.action_taken:
-            if x_y_distances[0] != 0:
-                if x_y_distances[0] > 0:
-                    arm_moved = self.environment.move_robotic_arm(worker.arm, "R")
-                    print("[MOVE]: R")
-                else:
-                    arm_moved = self.environment.move_robotic_arm(worker.arm, "L")
-                    print("[MOVE]: L")
-            if arm_moved:
-                worker.take_action()
-        # print("ARM MOVED: "+str(arm_moved))
-        if not worker.action_taken:
-            print("HERE W in workers")
-            arm_moved = self.environment.move_robotic_arm(worker.arm, "W")
-            print("[MOVE]: W")
-        worker.reset_action_taken()
-
-    def get_to_task_point(self, worker):
-        x_y_distances = worker.task.get_distance_to_first_point(worker.arm.get_position)
-        # print("[ARM position]: "+str(worker.arm.get_position())) 
-        # print("[TASK position]: "+str(worker.task.get_position()))
-        # print("DISTANCES: "+str(x_y_distances[0])+" "+str(x_y_distances[1]))
-
-        # TODO: ottimizzare scelta passi, per ora prima su e giu poi dx e sx
-        self.worker_move_arm(worker, x_y_distances)
-        # print("New [ARM position]: "+str(worker.arm.get_position()))
-        # print("New [TASK position]: "+str(worker.task.get_position()))
-        if worker.arm.get_position == worker.task.get_position:
-            worker.task.task_target_update()
-
-    def worker_retract_arm(self, worker):
-
-        retract, newPos = worker.retract()
-        print("NEWPOS: ", str(newPos))
-        x_y_distances = worker.task.x_y_distance(worker.arm.get_position, newPos)
-        print(x_y_distances)
-        if retract:
-            self.worker_move_arm(worker, x_y_distances)
-        elif newPos != (0, 0):
-            pass  # TODO: implement descheduling sleep or task reassignment
 
     def run_assembly(self):
-
-        for current_step in range(self.environment.n_steps):
-            print("[STEP]: " + str(current_step))
-
-            for worker in self.running_workers:
-                if current_step == 0:
-                    district = self.environment.calculate_district(worker.arm.mounting_point.x,
-                                                                   worker.arm.mounting_point.y)
-                    for ot in district.ordered_tasks:
-                        print(ot)
-
-                isTaskCompleted = worker.task.task_completed()
-                if isTaskCompleted and len(worker.arm.path) == 1:
-
-                    district = self.environment.calculate_district(worker.arm.mounting_point.x,
-                                                                   worker.arm.mounting_point.y)
-                    newTask = district.ordered_tasks[district.mounting_points.index(worker.arm.mounting_point)][0]
-                    for ot in district.ordered_tasks:
-                        ot.remove(newTask)
-                    self.environment.tasks.remove(newTask)
-                    worker.task = newTask
-
-                if not isTaskCompleted and not worker.arm.collision_check:
-                    self.get_to_task_point(worker)
-                else:
-                    print("RETRACTING")
-                    self.worker_retract_arm(worker)
-            self.environment.update_time()
-            if drawFlag:
-                self.environment.draw(agent=self)
-        print("#######################")
-
-        for worker in self.running_workers:
-            print(worker.arm.moves)
+        """
+        Method that applys all plans
+        """
+        print("ASSEBLING")
 
 
     def run_plan(self, planned_workers):
+        """
+        Executes the plans for the specific workers.
+        :param planned_workers: Plan for the workers.
+        """
+        #TODO: imporve doc and merge with run assembly
         for worker in planned_workers:
             print(worker.arm.moves)
         for current_step in range(self.environment.n_steps):

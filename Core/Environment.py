@@ -7,8 +7,20 @@ from Core.Utils.conversion import *
 
 
 class Environment:
-    def __init__(self, width, height, n_steps, n_robotic_arms, district_size=17):
-
+    """
+    Class which contains all the information about the environment.
+    """
+    def __init__(self, width: int, height: int, n_steps: int, n_robotic_arms: int, district_size: int = 17):
+        """
+        Constructor of the Environment Object. It receives the information from the given txt file configuration and
+        adapts it in order to let the Agent generate the plans for the robotic arms.
+        The origin of the working area is in the bottom left.
+        :param width: Width of the working space.
+        :param height: Height og the working space.
+        :param n_steps: Max number of steps allowed to perform the moves.
+        :param n_robotic_arms: Maximum number of deployable arms.
+        :param district_size: District height and width. (Default: 17)
+        """
         self.width = width
         self.height = height
         self.districts = []  # this will be a list of list
@@ -55,7 +67,12 @@ class Environment:
         self.robotic_arms = []
         self.total_score = 0
 
-    def add_tasks(self, tasks, task_positions):
+    def add_tasks(self, tasks: list, task_positions: list):
+        """
+        The method adds the tasks to the tasks list and sets marks on the grids the different subtasks points.
+        :param tasks: List of tasks to be added.
+        :param task_positions: List of coordinates for each task.
+        """
         for task, positions in zip(tasks, task_positions):
             t = Task(int((task.split(" "))[0]), int((task.split(" "))[1]))
             for index in range(0, t.n_points * 2, 2):
@@ -64,7 +81,13 @@ class Environment:
             first_point = t.points[0]
             self.calculate_district(first_point[0], first_point[1]).add_task(t)
 
-    def calculate_district(self, x, y):
+    def calculate_district(self, x: int, y: int) -> District:
+        """
+        Given the x and y coordinates of a point, returns the district in which it is located.
+        :param x: X coordinate.
+        :param y: Y coordinate.
+        :return: District in which the point is located.
+        """
         dx, dy = int(x / self.district_size), int(y / self.district_size)
         if dx > len(self.districts) - 1:
             dx = len(self.districts) - 1
@@ -72,7 +95,12 @@ class Environment:
             dy = len(self.districts[0]) - 1
         return self.districts[dx][dy]
 
-    def add_robotic_arm(self, mounting_point):
+    def add_robotic_arm(self, mounting_point: MountingPoint) -> RoboticArm:
+        """
+        Mounts a robotic arm over a given mounting point.
+        :param mounting_point: Mouting point Object.
+        :return: Arm object.
+        """
         if len(self.robotic_arms) == self.n_robotic_arms:
             raise ValueError("max number of robotic arm already reached!")
 
@@ -85,26 +113,33 @@ class Environment:
         self.calculate_district(mounting_point.x, mounting_point.y).add_robotic_arm(arm)
         return arm
 
-    def add_mounting_points(self, mounting_points):
+    def add_mounting_points(self, mounting_points: list):
+        """
+        Adds the mounting points to the grid and adds them to the realtive district.
+        :param mounting_points: List of the x and y coordinates of the mounting points.
+        """
         for m in mounting_points:
             mounting_point = MountingPoint(m[0], m[1])
             self.mounting_points.append(mounting_point)
             self.calculate_district(mounting_point.x, mounting_point.y).add_mounting_point(mounting_point)
 
     def update_time(self):
+        """
+        Method that increments the given time by one step. If called and some robotic arms did not move, it appends to
+        their movements a Wait move.
+        """
         print("°°°°°°°°°°°°°°˚°°°°°°°°TIME UPDATED°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°")
         for a in self.robotic_arms:
             if len(a.moves) - 1 < self.current_step:
                 a.moves.append("W")
         self.current_step += 1
 
-    def move_robotic_arm(self, robotic_arm, action):
+    def move_robotic_arm(self, robotic_arm: RoboticArm, action: str) -> bool:
         """
-
-        Args:
-            robotic_arm:
-            action:
-            new_point:
+        Method that checks if the given action is valid and if it is the case it performs a movement.
+        :param robotic_arm: Robotic arm to move.
+        :param action: Action to take.
+        :return: True if the action has been take, False if the arm can't make that action
         """
         valid, new_point = self.is_move_valid(robotic_arm, action)
         if not valid:
@@ -114,15 +149,12 @@ class Environment:
         return True
 
 
-    def is_move_valid(self, robotic_arm, action):
+    def is_move_valid(self, robotic_arm: RoboticArm, action: str) -> tuple:
         """
-
-        Args:
-            robotic_arm:
-            action:
-
-        Returns:
-
+        Method that checks if a move is valid and if it is the case, returns the point after the movement.
+        :param robotic_arm: Robotic Arm to move.
+        :param action: Action to take
+        :return: If the move can be taken it returns [True,new_point], otherwise [False,(0,0)]
         """
         if action not in ["U", "R", "D", "L", "W"]:
             raise ValueError("action must be one of U R D L W")
@@ -176,6 +208,9 @@ class Environment:
         return True, new_point
 
     def show(self):
+        """
+        Method that lists all the visibile elements of the environment.
+        """
         print(self.width, self.height, self.n_robotic_arms, len(self.mounting_points), len(self.tasks), self.n_steps,
               sep=" ")
         for point in self.mounting_points:
@@ -187,6 +222,10 @@ class Environment:
             print(" ")
 
     def draw(self, agent=None):
+        """
+        Method that draws a grid and is updated at each step to show how the environment evolves.
+        :param agent: If the method is called with agent != None it also draws the path of the agent.
+        """
         self.matrix = np.ones((self.height, self.width, 3))*0.8
 
         x = [i for i in range(self.width)]

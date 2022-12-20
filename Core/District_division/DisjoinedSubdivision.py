@@ -19,6 +19,35 @@ class DisjoinedSubdivision:
 		self._centers = []
 		self.districts = []
 
+	@property
+	def env(self):
+		"""The Environment.
+		"""
+		return self.env
+	@env.setter
+	def env(self, value: Environment):
+		self.env = value
+
+	@property
+	def n_district(self):
+		"""The number of districts to consider.
+		"""
+		return self.n_district
+
+	@n_district.setter
+	def n_district(self, value: int):
+		self.n_district = value
+
+	@property
+	def districts(self):
+		"""The districts obtained with the current subdivision.
+		"""
+		return self.districts
+
+	@districts.setter
+	def districts(self, value):
+		self.districts = value
+
 	def random_init(self):
 		"""
 		Initialize randomly the position of centers of districts

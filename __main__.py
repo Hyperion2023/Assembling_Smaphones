@@ -40,7 +40,7 @@ if __name__ == "__main__":
     end = time.time()
     print("Computing Djikstra: " + str(end - start))
     target = g.get_vertex(14)
-    path = [target.get_id()]
+    path = [target.get_id]
     start = time.time()
     shortest(target, path)
     end = time.time()

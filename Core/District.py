@@ -1,9 +1,28 @@
 from Core import MountingPoint, RoboticArm, Task
+from Core.Utils.Dijkstra import Graph
 
 
 class District:
     """
-    District class. A district is a spatial subdivision of the original matrix
+    District class. A district is a spatial subdivision of the original matrix.
+
+    Attributes
+    ----------
+    origin : tuple[int, int]
+        The origin of the district.
+    width : int
+        The width of the district.
+    height : int
+        The height of the district.
+    tasks : list[Task]
+        The tasks in the district.
+    mounting_points : list[MountingPoint]
+        The mounting points in the district.
+    robotic_arms : list[RoboticArm]
+        The robotic arms in the district.
+    ordered_tasks : list[list[Task]]
+        The ordered tasks in the district for each arm.
+
     """
     def __init__(self, origin: tuple, width: int, height: int):
         """
@@ -19,7 +38,15 @@ class District:
         self.mounting_points = []
         self.robotic_arms = []
         self.ordered_tasks = [] #List of lists<
+        self.graphs = []
 
+
+    def add_graph(self, graph: Graph):
+        """
+        Add a graph to the district.
+        :param graph: The graph to add.
+        """
+        self.graph = graph
     def add_task(self, task: Task):
         """
         Method to add the tasks contained in the district

@@ -4,7 +4,20 @@ from Core import MountingPoint
 
 class Task:
     """
-    Class tha repesents a Task and contains it value and the positions of its points.
+    Class tha represents a Task and contains it value and the positions of its points.
+
+    Attributes
+    ----------
+    value : int
+        The value of the task.
+    n_points : int
+        The number of points in the task.
+    points : list[tuple[int, int]]
+        The coordinates of the points of the task.
+    distance : int
+        The distance between the points of the task.
+    score : float
+        The score of the task with respect to the considered starting point.
     """
     def __init__(self, value: int = 0, n_points: int = 0):
         """
@@ -16,6 +29,7 @@ class Task:
         self.n_points = n_points
         self.points = []
         self.distance = 0
+        self.score = 0
 
     @property
     def show_task(self):

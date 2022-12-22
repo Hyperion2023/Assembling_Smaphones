@@ -4,6 +4,19 @@ from Core import MountingPoint
 class RoboticArm:
     """
     Class that represents a Robotic arm. It can mount it and check if the action si valid.
+    ...
+    Attributes
+    ----------
+    mounting_point : Core.MountingPoint.MountingPoint
+        Mounting point of the arm.
+    path : list[tuple[int, int]]
+        Path of the arm.
+    moves : list[str]
+        Set of moves performed on the arm.
+    collision_check : bool
+        Check if the arm is collision free.
+    graph : Core.Utils.Dijkstra.Graph
+        Dijkstra graph from the mounting point.
     """
     def __init__(self):
         """

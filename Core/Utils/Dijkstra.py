@@ -1,14 +1,33 @@
+import multiprocessing
 import sys
 
 import numpy
+from alive_progress import alive_bar
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
-import Core
+num_cores = multiprocessing.cpu_count()
+from Core.Utils.conversion import *
 
 
 class Vertex:
     """
     Vertex class used to compute Dijkstra's shortest path algorithm.
+
+    Attributes
+    ----------
+    Id : int
+        The id of the vertex.
+    adjacent: dict
+        A dictionary mapping each vertex to its adjacent vertices.
+    distance : int
+        The distance of the vertex. Initially infinite.
+    visited : bool
+        Whether the vertex has already been visited. Initially None.
+    previous : Vertex
+        The previous vertex.
     """
+
     def __init__(self, node: int):
         """
         Constructor for the Vertex class.
@@ -68,10 +87,12 @@ class Graph:
     """
     Graph class used to compute Dijkstra's shortest path algorithm.
     """
+
     def __init__(self):
         """
         Constructor for the Graph class.
         """
+        self.touched = False  # TO REMOVE; FOR DEBUG PURPOSES ONLY
         self.vert_dict = {}
         self.num_vertices = 0
 
@@ -115,9 +136,6 @@ class Graph:
                         # print("LINKING: "+str(cur_index)+" -> "+str((row_index+1)*len(row)+col_index))
                         self.add_edge(cur_index, (row_index + 1) * len(row) + col_index, 1000000)
 
-
-
-
     def __iter__(self):
         return iter(self.vert_dict.values())
 
@@ -142,7 +160,7 @@ class Graph:
         else:
             return None
 
-    def add_edge(self, frm: int, to:int, cost:int=0):
+    def add_edge(self, frm: int, to: int, cost: int = 0):
         """
         Add an edge to the graph.
         :param frm: First node to add.
@@ -175,39 +193,87 @@ class Graph:
         return self.previous
 
 
-def shortest(v, path:int):
+def shortest(v, path: int):
     """
     Get the shortest path from v to path.
     :param v: Source vertex.
     :param path: Destination vertex.
     :return: Path.
     """
+    #print("GETTING PATH")
     if v.previous:
         path.append(v.previous.get_id)
         shortest(v.previous, path)
+
     return
 
 
 import heapq
 
 
-def create_graph_from_district(environment:Core.Environment.Environment):
+def create_graph_from_district(agent):
     """
     Generate a list of graphs for the districts in the environment.
     :param environment: Environment.
-    :return: List of graphs.
     """
-    list_of_graphs=[]
-    for row in environment.districts:
-        for district in row:
+    graphList = []
+    arms_list = []
+    with alive_bar(len(agent.active_mounting_points), bar="bubbles", dual_line=True, title='Assigning Tasks') as bar:
+        for keyValue in agent.active_mounting_points:
             # Each district has origin, w and h
-            submatrix = environment.matrix[district.origin[0]:district.origin[0] + district.width,
-                        district.origin[1]:district.origin[1] + district.height]
-            g=Graph()
+            submatrix = agent.environment.matrix[keyValue[0].origin[0]:keyValue[0].origin[0] + keyValue[0].width,
+                        keyValue[0].origin[1]:keyValue[0].origin[1] + keyValue[0].height]
+            g = Graph()
             g.create_graph_from_mat(submatrix)
-            list_of_graphs.append(g)
+            graphList.append(g)
+            arm_to_add=next(
+                (x for x in keyValue[0].robotic_arms if x.mounting_point == keyValue[0].mounting_points[keyValue[1]]),
+                None)
+            if arm_to_add:
+                arms_list.append(arm_to_add)
+                bar(1)
 
-    return list_of_graphs
+
+    # print(global_coordinates_to_district_coordinates(
+    #                 (district.robotic_arms[0].mounting_point.x,
+    #                  district.robotic_arms[0].mounting_point.y),environment))
+    if agent.environment.district_size<=10:
+        inputs = tqdm(arms_list)
+        results = Parallel(n_jobs=num_cores)(
+            delayed(dijkstra)(
+                graphList[index], graphList[index].get_vertex(
+                    global_coordinates_to_district_coordinates(
+                        (i.mounting_point.x,
+                         i.mounting_point.y),
+                        agent.environment)))
+            for index, i in enumerate(inputs))
+    else:
+        results=[]
+        print("Starting dijkstra Computation")
+        with alive_bar(len(arms_list), bar="bubbles", dual_line=True,title='Computing Dijkstra') as bar:
+            for index, i in enumerate(arms_list):
+                results.append(dijkstra(graphList[index], graphList[index].get_vertex(
+                    global_coordinates_to_district_coordinates(
+                        (i.mounting_point.x,
+                         i.mounting_point.y),
+                        agent.environment))))
+                bar(1)
+
+
+    graphList = results
+    for graph,arm in zip(graphList,arms_list):
+        arm.graph=graph
+
+
+
+    print("STOP")
+
+    # with multiprocessing.Pool() as pool:
+    #     call the function for each item in parallel
+    #     for result in pool.map(task, items):
+    #         print(result)
+
+
 def dijkstra(aGraph, start):
     """
     Given a Graph, compute Dijkstra's shortest path algorithm, given a starting vertex. This will generate the shortest
@@ -216,9 +282,10 @@ def dijkstra(aGraph, start):
     :param aGraph: Graph associated with a portion, or totality of the matrix.
     :param start: Starting vertex.
     """
-    print("Dijkstra's shortest path")
+    #print("Dijkstra's shortest path")
     # Set the distance for the start node to zero
     start.set_distance(0)
+    aGraph.touched = True
 
     # Put tuple pair into the priority queue
     unvisited_queue = [(v.get_distance(), v) for v in aGraph]
@@ -249,6 +316,8 @@ def dijkstra(aGraph, start):
         # 2. Put all vertices not visited into the queue
         unvisited_queue = [(v.get_distance(), v) for v in aGraph if not v.visited]
         heapq.heapify(unvisited_queue)
+
+    return aGraph
 
 # g = Graph()
 

@@ -3,6 +3,26 @@ from Core.Planner.Path import OptimalPath
 
 
 class Worker:
+    """
+    The Worker class that controls an arm.
+
+    Attributes
+    ----------
+    arm : Core.RoboticArm.RoboticArm
+        The robotic arm assigned to this worker.
+    task : Core.Task.Task
+        The task assigned to this arm.
+    task_points_done: int
+        The number of task points done.
+    plan: list[tuple[int, int]]
+        The plan of the arm to follow.
+    action_taken: bool
+        Whether the action was taken.
+    env: Core.Environment.Environment
+        The environment in which the worker is running.
+
+
+    """
     def __init__(self, arm: RoboticArm, task: Task, env: Environment):
         """
         Worker Class, it takes and arm and a task and performs all the required step to complete the task.
@@ -19,7 +39,7 @@ class Worker:
         self.plan = []  # TODO: implement in future version
         self.action_taken = False
         self.env = env
-        self.generate_optimal_path()
+        #self.generate_optimal_path()
 
     def generate_optimal_path(self):
         self.optimal_path = OptimalPath(self.env)

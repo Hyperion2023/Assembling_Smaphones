@@ -57,7 +57,7 @@ class Environment:
                     size_y = self.height - j
                 else:
                     size_y = district_size
-                new_district = District((i, j), size_x, size_y)
+                new_district = District.District((i, j), size_x, size_y)
                 row.append(new_district)
             self.districts.append(row)
 
@@ -74,7 +74,7 @@ class Environment:
         :param task_positions: List of coordinates for each task.
         """
         for task, positions in zip(tasks, task_positions):
-            t = Task(int((task.split(" "))[0]), int((task.split(" "))[1]))
+            t = Task.Task(int((task.split(" "))[0]), int((task.split(" "))[1]))
             for index in range(0, t.n_points * 2, 2):
                 t.add_point(int((positions.split(" "))[index]), int((positions.split(" "))[index + 1]))
             self.tasks.append(t)
@@ -107,7 +107,7 @@ class Environment:
         # if mounting_point.occupied:
         #     raise ValueError("mounting point already occupied")
 
-        arm = RoboticArm()
+        arm = RoboticArm.RoboticArm()
         arm.mount(mounting_point)
         self.robotic_arms.append(arm)
         self.calculate_district(mounting_point.x, mounting_point.y).add_robotic_arm(arm)
@@ -119,7 +119,7 @@ class Environment:
         :param mounting_points: List of the x and y coordinates of the mounting points.
         """
         for m in mounting_points:
-            mounting_point = MountingPoint(m[0], m[1])
+            mounting_point = MountingPoint.MountingPoint(m[0], m[1])
             self.mounting_points.append(mounting_point)
             self.calculate_district(mounting_point.x, mounting_point.y).add_mounting_point(mounting_point)
 
@@ -259,5 +259,5 @@ class Environment:
         plt.draw()
         plt.pause(1)
 
-        input("WAIT A SECOND PLX")
+        #input("WAIT A SECOND PLX")
 

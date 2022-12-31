@@ -1,6 +1,7 @@
 from Core import Environment, RoboticArm, Task
+from Core.Astar import State, a_star, goal_test, h, g
 from Core.Planner.Path import OptimalPath
-
+from copy import deepcopy
 
 class Worker:
     """
@@ -67,6 +68,30 @@ class Worker:
     def reset_action_taken(self):
         self.action_taken = False
 
+    def retract_n_steps(self, n):
+        if n < 1:
+            raise ValueError("retract must be at least 1 move")
+        if n >= len(self.arm.path):
+            raise ValueError("retract must be non superior to arm path lenght")
+        r_move = "W"
+        head_position = self.arm.path[-1]
+        for i in range(n):
+            new_head_position = self.arm.path[-(i + 2)]
+            if new_head_position == (head_position[0], head_position[1] + 1):
+                r_move = "U"
+            if new_head_position == (head_position[0], head_position[1] - 1):
+                r_move = "D"
+            if new_head_position == (head_position[0] + 1, head_position[1]):
+                r_move = "R"
+            if new_head_position == (head_position[0] - 1, head_position[1]):
+                r_move = "L"
+            self.arm.moves.append(r_move)
+            head_position = new_head_position
+        self.arm.path = self.arm.path[:-n]
+
+    def retract_all(self):
+        self.retract_n_steps(len(self.arm.path) - 1)
+
     def retract(self):
         if not self.arm.collision_check:
             if len(self.arm.path) > 1:
@@ -78,3 +103,25 @@ class Worker:
 
         else:
             return False, (0, 0)  # TODO: to modify for real collision_check
+
+    def plan_with_astar(self, a_star_max_trials):
+        starting_state = State(self.env.matrix, [self])
+        finished = False
+        while not finished:
+            final_state, finished = a_star(starting_state, goal_test, g, h, a_star_max_trials)
+            # trial = 1
+            # while not finished and trial < num_restarts:
+            #     trial += 1
+            #     final_state, finished = a_star(final_state, goal_test, g, h, a_star_max_trials)
+            if not finished:
+
+                # final_state.workers[0].retract_all()
+                final_state.workers[0].retract_n_steps(3)
+                # final_state.workers[0].retract_n_steps(int((len(final_state.workers[0].arm.path) - 1) / 5))
+                starting_state = final_state
+
+        self.plan = final_state.workers[0].arm.moves
+    def __deepcopy__(self, memodict={}):
+        w = Worker(deepcopy(self.arm, memodict), self.task, env=self.env)
+        w.task_points_done = self.task_points_done
+        return w

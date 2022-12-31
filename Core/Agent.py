@@ -84,7 +84,7 @@ class Agent:
                             continue
                         if self.deployed_arms < self.n_total_arms:
                             self.deployed_arms += 1
-                            self.active_mounting_points.append((district,mounting_point_index))
+                            self.active_mounting_points.append((district, mounting_point_index))
                             bar(1)
         self.environment.draw(agent=self)
 
@@ -160,13 +160,14 @@ class Agent:
         """
         # TODO: imporve doc and merge with run assembly
         for worker in planned_workers:
-            print(worker.arm.moves)
+            print(worker.plan)
         for current_step in range(self.environment.n_steps):
             print("[STEP]: " + str(current_step))
             for worker, planned_worker in zip(self.running_workers, planned_workers):
                 try:
-                    self.environment.move_robotic_arm(worker.arm, planned_worker.arm.moves.pop(0))
+                    self.environment.move_robotic_arm(worker.arm, planned_worker.plan.pop(0))
                 except IndexError:
+                    input()
                     return
             self.environment.update_time()
             if drawFlag:
@@ -174,4 +175,4 @@ class Agent:
         print("#######################")
 
         for worker in self.running_workers:
-            print(worker.arm.moves)
+            print(worker.plan)

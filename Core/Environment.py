@@ -257,7 +257,7 @@ class Environment:
                 self.ax.add_patch(patches.Rectangle((district.origin[0]-0.5,district.origin[1]-0.5), district.width, district.height, linewidth=1, edgecolor='b', facecolor='none'))
 
         plt.draw()
-        plt.pause(1)
+        plt.pause(0.1)
 
         #input("WAIT A SECOND PLX")
 

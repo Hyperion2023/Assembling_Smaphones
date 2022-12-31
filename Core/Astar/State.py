@@ -6,7 +6,8 @@ import random
 import Core
 from Core.Utils.conversion import *
 from Core import Worker
-
+from Core.Utils.distances import manhattan_distance
+from Core.Utils.moves import opposite_move
 
 class State:
 	"""
@@ -108,6 +109,27 @@ class State:
 			if new_worker.task_points_done < new_worker.task.n_points and new_worker.arm.path[-1] == \
 					new_worker.task.points[new_worker.task_points_done]:
 				new_worker.task_points_done += 1
+
+				# retract to the closest point on path to the next task point
+				if len(moves) == 1 and new_worker.task_points_done < new_worker.task.n_points:
+					closest_p = new_worker.arm.path[-1]
+					moves_to_retract = -1
+					# for p in reversed(new_worker.arm.path):
+					# 	if manhattan_distance(p, new_worker.task.points[new_worker.task_points_done]) > \
+					# 		manhattan_distance(closest_p, new_worker.task.points[new_worker.task_points_done]):
+					# 		break
+					# 	closest_p = p
+					# 	moves_to_retract += 1
+					for i, p in enumerate(reversed(new_worker.arm.path)):
+						if manhattan_distance(p, new_worker.task.points[new_worker.task_points_done]) <= \
+							manhattan_distance(closest_p, new_worker.task.points[new_worker.task_points_done]):
+							closest_p = p
+							moves_to_retract = i
+					if moves_to_retract > 0:
+						new_worker.retract_n_steps(moves_to_retract)
+						self.n_step += moves_to_retract
+
+
 
 			new_workers.append(new_worker)
 

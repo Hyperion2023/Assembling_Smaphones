@@ -15,55 +15,55 @@ class ArmDeployment:
 	Class to represent an assignment of arm to mounting points, with derived rectangular districts
 	"""
 	def __init__(self, env: Environment, max_district_size: int, alpha=1):
-		self._env = env
-		self._n_arm = self.env.n_robotic_arms
+		self.env = env
+		self.n_arm = self.env.n_robotic_arms
 		self.max_district_size = max_district_size
 		self.alpha = alpha
 		self.selected_mounting_point = []
 		self.mounting_point_tasks = None
 		self.districts = None
 
-	@property
-	def env(self):
-		"""The environment
-		"""
-		return self._env
-
-	@property
-	def n_arm(self):
-		"""The number of arms to deploy
-		"""
-		return self._n_arm
-
-	@property
-	def max_district_size(self):
-		"""Max distance of the boundaries of the district from the center of the district
-		"""
-		return self.max_district_size
-
-	@max_district_size.setter
-	def max_district_size(self, value: int):
-		self.max_district_size = value
-
-	@property
-	def alpha(self):
-		"""Weight coefficient of the intersection of districts in the fitness function
-		"""
-		return self.alpha
-
-	@alpha.setter
-	def alpha(self, value: float):
-		self.alpha = value
-
-	@property
-	def districts(self):
-		"""The districts obtained after the deployment of the arms to the mounting points
-		"""
-		return self.districts
-
-	@districts.setter
-	def districts(self, value: list):
-		self.districts = value
+	# @property
+	# def env(self):
+	# 	"""The environment
+	# 	"""
+	# 	return self._env
+	#
+	# @property
+	# def n_arm(self):
+	# 	"""The number of arms to deploy
+	# 	"""
+	# 	return self._n_arm
+	#
+	# @property
+	# def max_district_size(self):
+	# 	"""Max distance of the boundaries of the district from the center of the district
+	# 	"""
+	# 	return self.max_district_size
+	#
+	# @max_district_size.setter
+	# def max_district_size(self, value: int):
+	# 	self._max_district_size = value
+	#
+	# @property
+	# def alpha(self):
+	# 	"""Weight coefficient of the intersection of districts in the fitness function
+	# 	"""
+	# 	return self.alpha
+	#
+	# # @alpha.setter
+	# # def alpha(self, value: float):
+	# # 	self.alpha = value
+	#
+	# @property
+	# def districts(self):
+	# 	"""The districts obtained after the deployment of the arms to the mounting points
+	# 	"""
+	# 	return self.districts
+	#
+	# @districts.setter
+	# def districts(self, value: list):
+	# 	self.districts = value
 
 	def random_init(self):
 		"""
@@ -179,6 +179,12 @@ class ArmDeployment:
 		"""
 		if not self.districts:
 			self.calculate_districts()
+
+		total_covered_score = 0
+		for m_point, tasks in self.mounting_point_tasks.items():
+			for task in tasks:
+				total_covered_score += task.get_task_score(m_point)
+
 		total_task_covered = sum([len(tasks) for tasks in self.mounting_point_tasks.values()])
 		if total_task_covered == 0:
 			coverange_distrib = [0 for _ in self.selected_mounting_point]
@@ -186,7 +192,10 @@ class ArmDeployment:
 			coverange_distrib = [len(tasks) / total_task_covered for tasks in self.mounting_point_tasks.values()]
 		entropy = - sum([p * (math.log(p) if p != 0 else 0) for p in coverange_distrib])
 		IoT = self.get_intersection_over_total()
-		return total_task_covered * entropy * math.exp(-self.alpha * IoT)
+		# print(self.alpha)
+		# print(IoT)
+		# print(total_covered_score, entropy, math.exp(-self.alpha * IoT))
+		return total_covered_score * entropy * math.exp(-self.alpha * IoT)
 
 	def reproduce(self, state):
 		"""
@@ -198,7 +207,7 @@ class ArmDeployment:
 		for m in state.selected_mounting_point:
 			new_selected_mounting_point.add(m)
 		new_selected_mounting_point = random.sample(list(new_selected_mounting_point), k=self.n_arm)
-		new_state = ArmDeployment(self.env, random.choice([self.max_district_size, state.max_district_size]))
+		new_state = ArmDeployment(self.env, random.choice([self.max_district_size, state.max_district_size]), alpha=self.alpha)
 		new_state.selected_mounting_point = new_selected_mounting_point
 		return new_state
 
@@ -218,6 +227,15 @@ class ArmDeployment:
 		self.max_district_size = self.max_district_size + random.randint(-5, 5)
 		return self
 
+	def get_n_task_covered(self):
+		return sum([len(tasks) for tasks in self.mounting_point_tasks.values()])
+
+	def get_total_covered_score(self):
+		total_covered_score = 0
+		for m_point, tasks in self.mounting_point_tasks.items():
+			for task in tasks:
+				total_covered_score += task.get_task_score(m_point)
+		return total_covered_score
 	def draw_districts(self):
 		fig, ax = plt.subplots()
 		matrix = np.ones((self.env.height, self.env.width, 3)) * 0.8
@@ -230,5 +248,14 @@ class ArmDeployment:
 					range(district.center[1] - district.down, district.center[1] + district.up + 1, 1)):
 				x, y = state_to_matrix(p)
 				matrix[x, y, :] = color
+
+		for t in self.env.tasks:
+			for inner in t.points:
+				matrix[state_to_matrix(inner)] = (0, 0, 0)
+
+		for (_, tasks), color in zip(self.mounting_point_tasks.items(), district_colors):
+			for task in tasks:
+				for t_point in task.points:
+					matrix[state_to_matrix(t_point)] = 1 - color
 		im.set_data(matrix)
 		plt.show()

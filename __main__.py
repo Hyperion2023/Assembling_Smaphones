@@ -9,7 +9,7 @@ from Core.Planner.Planner import Planner
 import sys
 
 if __name__ == "__main__":
-    path = r"./Dataset/e_dense_workspace.txt"
+    path = r"./Dataset/f_decentralized.txt"
 
     # state = State(None, 4)
     # state.get_children()

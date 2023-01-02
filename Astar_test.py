@@ -14,8 +14,9 @@ boomer.assign_tasks()
 
 
 t = time.time()
-boomer.running_workers[0].plan_with_astar(a_star_max_trials=10000)
+boomer.running_workers[0].plan_with_astar(a_star_max_trials=1000, retract_policy="7/8")
 t = time.time() - t
 print("plan generated in ", t, "seconds")
+print("plan is", len(boomer.running_workers[0].plan), "long")
 input()
 boomer.run_plan([boomer.running_workers[0]])

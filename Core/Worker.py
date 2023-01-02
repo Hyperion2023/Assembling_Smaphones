@@ -104,18 +104,25 @@ class Worker:
         else:
             return False, (0, 0)  # TODO: to modify for real collision_check
 
-    def plan_with_astar(self, a_star_max_trials):
+    def plan_with_astar(self, a_star_max_trials, retract_policy="1/2"):
         starting_state = State(self.env.matrix, [self])
         finished = False
         while not finished:
             final_state, finished = a_star(starting_state, goal_test, g, h, a_star_max_trials)
             if not finished:
-                # final_state.workers[0].retract_all()
-                final_state.workers[0].retract_n_steps(1)
-                # final_state.workers[0].retract_n_steps(int((len(final_state.workers[0].arm.path) - 1) / 5))
+                if isinstance(retract_policy, int):
+                    final_state.workers[0].retract_n_steps(retract_policy)
+                elif isinstance(retract_policy, str):
+                    split_retract_policy = retract_policy.split("/")
+                    try:
+                        final_state.workers[0].retract_n_steps(int((len(final_state.workers[0].arm.path) - 1) * int(split_retract_policy[0]) / int(split_retract_policy[1])))
+                    except (IndexError, ValueError):
+                        raise ValueError("invalid retract policy")
+                else:
+                    raise ValueError("invalid retract policy")
                 starting_state = final_state
                 starting_state.optimal = False
-
+        final_state.workers[0].retract_all()
         self.plan = final_state.workers[0].arm.moves
     def __deepcopy__(self, memodict={}):
         w = Worker(deepcopy(self.arm, memodict), self.task, env=self.env)

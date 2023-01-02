@@ -16,37 +16,8 @@ class DisjoinedSubdivision:
 	def __init__(self, env: Environment, n_district: int):
 		self.env = env
 		self.n_district = n_district
-		self._centers = []
+		self.centers = []
 		self.districts = []
-
-	@property
-	def env(self):
-		"""The Environment.
-		"""
-		return self.env
-	@env.setter
-	def env(self, value: Environment):
-		self.env = value
-
-	@property
-	def n_district(self):
-		"""The number of districts to consider.
-		"""
-		return self.n_district
-
-	@n_district.setter
-	def n_district(self, value: int):
-		self.n_district = value
-
-	@property
-	def districts(self):
-		"""The districts obtained with the current subdivision.
-		"""
-		return self.districts
-
-	@districts.setter
-	def districts(self, value):
-		self.districts = value
 
 	def random_init(self):
 		"""
@@ -54,9 +25,9 @@ class DisjoinedSubdivision:
 		"""
 		for _ in range(self.n_district):
 			center = (random.randint(0, self.env.width - 1), random.randint(0, self.env.height - 1))
-			while center in self._centers:
+			while center in self.centers:
 				center = (random.randint(0, self.env.width - 1), random.randint(0, self.env.height - 1))
-			self._centers.append(center)
+			self.centers.append(center)
 
 	def draw_districts(self):
 		fig, ax = plt.subplots()
@@ -77,7 +48,7 @@ class DisjoinedSubdivision:
 		Generate the districts from the position of the centers
 		:return: the generated districts
 		"""
-		district = [District(self.env, c, 0, 0, 0, 0) for c in self._centers]
+		district = [District(self.env, c, 0, 0, 0, 0) for c in self.centers]
 		self.districts = district
 		updated = True
 		while updated:
@@ -109,9 +80,9 @@ class DisjoinedSubdivision:
 		starting_point = 0
 		end_point = self.n_district - 1
 		split_point = random.randint(starting_point, end_point)
-		new_centers = self._centers[0:split_point] + state._centers[split_point:]
+		new_centers = self.centers[0:split_point] + state.centers[split_point:]
 		new_state = DisjoinedSubdivision(self.env, self.n_district)
-		new_state._centers = new_centers
+		new_state.centers = new_centers
 		return new_state
 
 	def mutate(self):
@@ -120,7 +91,7 @@ class DisjoinedSubdivision:
 		:return: the current state modified
 		"""
 		mutating_district = random.randint(0, self.n_district - 1)
-		self._centers[mutating_district] = (
+		self.centers[mutating_district] = (
 			random.randint(0, self.env.width - 1), random.randint(0, self.env.height - 1))
 		return self
 

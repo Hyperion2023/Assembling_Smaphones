@@ -15,61 +15,24 @@ class ArmDeployment:
 	Class to represent an assignment of arm to mounting points, with derived rectangular districts
 	"""
 	def __init__(self, env: Environment, max_district_size: int, alpha=1):
-		self._env = env
-		self._n_arm = self.env.n_robotic_arms
+		self.env = env
+		self.n_arm = self.env.n_robotic_arms
 		self.max_district_size = max_district_size
 		self.alpha = alpha
 		self.selected_mounting_point = []
+		self.available_mounting_points = list(env.mounting_points)
 		self.mounting_point_tasks = None
 		self.districts = None
-
-	@property
-	def env(self):
-		"""The environment
-		"""
-		return self._env
-
-	@property
-	def n_arm(self):
-		"""The number of arms to deploy
-		"""
-		return self._n_arm
-
-	@property
-	def max_district_size(self):
-		"""Max distance of the boundaries of the district from the center of the district
-		"""
-		return self.max_district_size
-
-	@max_district_size.setter
-	def max_district_size(self, value: int):
-		self.max_district_size = value
-
-	@property
-	def alpha(self):
-		"""Weight coefficient of the intersection of districts in the fitness function
-		"""
-		return self.alpha
-
-	@alpha.setter
-	def alpha(self, value: float):
-		self.alpha = value
-
-	@property
-	def districts(self):
-		"""The districts obtained after the deployment of the arms to the mounting points
-		"""
-		return self.districts
-
-	@districts.setter
-	def districts(self, value: list):
-		self.districts = value
 
 	def random_init(self):
 		"""
 		Randomly choose the mounting point to deploy the arm on
 		"""
 		self.selected_mounting_point = random.sample(self.env.mounting_points, k=self.n_arm)
+		self.available_mounting_points = []
+		for m in self.env.mounting_points:
+			if m not in self.selected_mounting_point:
+				self.available_mounting_points.append(m)
 
 	def get_closest(self, p: tuple):
 		"""
@@ -188,7 +151,7 @@ class ArmDeployment:
 		IoT = self.get_intersection_over_total()
 		return total_task_covered * entropy * math.exp(-self.alpha * IoT)
 
-	def reproduce(self, state):
+	def reproduce(self, state, policy="random"):
 		"""
 		Combine the current mounting points chosen with another chose of mounting point (for genetic algorithm)
 		:param state: the state representing the other chose of mounting point
@@ -200,6 +163,10 @@ class ArmDeployment:
 		new_selected_mounting_point = random.sample(list(new_selected_mounting_point), k=self.n_arm)
 		new_state = ArmDeployment(self.env, random.choice([self.max_district_size, state.max_district_size]))
 		new_state.selected_mounting_point = new_selected_mounting_point
+		new_state.available_mounting_points = []
+		for m in new_state.env.mounting_points:
+			if m not in new_state.selected_mounting_point:
+				new_state.available_mounting_points.append(m)
 		return new_state
 
 	def mutate(self):
@@ -207,16 +174,28 @@ class ArmDeployment:
 		Mutate the current state changing one of the chosen mounting points
 		:return: the current state modified
 		"""
-		available_mounting_points = []
-		for m in self.env.mounting_points:
-			if m not in self.selected_mounting_point:
-				available_mounting_points.append(m)
-		new_mounting_point = random.choice(available_mounting_points)
+		new_mounting_point = random.choice(self.available_mounting_points)
 		removed_mounting_point = random.choice(self.selected_mounting_point)
 		self.selected_mounting_point.remove(removed_mounting_point)
 		self.selected_mounting_point.append(new_mounting_point)
 		self.max_district_size = self.max_district_size + random.randint(-5, 5)
 		return self
+
+	def get_children(self):
+		shuffled_selected_mp = list(self.selected_mounting_point)
+		np.random.shuffle(shuffled_selected_mp)
+		shuffled_available_mp = list(self.available_mounting_points)
+		np.random.shuffle(shuffled_available_mp)
+		for old_m in shuffled_selected_mp:
+			for new_m in shuffled_available_mp:
+				new_state = ArmDeployment(self.env, max_district_size=self.max_district_size, alpha=self.alpha)
+				new_state.selected_mounting_point = list(self.selected_mounting_point)
+				new_state.available_mounting_points = list(self.available_mounting_points)
+				new_state.selected_mounting_point.remove(old_m)
+				new_state.available_mounting_points.append(old_m)
+				new_state.selected_mounting_point.append(new_m)
+				new_state.available_mounting_points.remove(new_m)
+				yield new_state
 
 	def draw_districts(self):
 		fig, ax = plt.subplots()

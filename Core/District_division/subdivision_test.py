@@ -1,10 +1,7 @@
 from Core.Utils.Data import create_Environment
-from Core.District_division import DisjoinedSubdivision
-from Core.District_division.genetic_algoritm import genetic_algorithm
-from Core.District_division import ArmDeployment
-from Core.District_division.hill_climbing import hill_climbing
+from Core.District_division.genetic_algoritm import *
+from Core.District_division.ArmDeployment import ArmDeployment
 from Core.District_division.simulated_annealing import simulated_annealing
-
 
 path = r"./../../Dataset/b_single_arm.txt"
 
@@ -34,5 +31,8 @@ initial_population = [ArmDeployment(env, 25, alpha=0.5) for _ in range(20)]
 for s in initial_population:
 	s.random_init()
 
-res = genetic_algorithm(initial_population,  mutation_probability=0.3, max_iter=100, verbose=True)
+res = genetic_algorithm(initial_population,  mutation_probability=0.5, max_iter=100, verbose=True)
+print("task covered", res.get_n_task_covered())
+print("task score", res.get_total_covered_score())
+print("max_size", res.max_district_size)
 res.draw_districts()

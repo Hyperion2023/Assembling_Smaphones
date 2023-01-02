@@ -143,6 +143,12 @@ class ArmDeployment:
 		"""
 		if not self.districts:
 			self.calculate_districts()
+
+		total_covered_score = 0
+		for m_point, tasks in self.mounting_point_tasks.items():
+			for task in tasks:
+				total_covered_score += task.get_task_score(m_point)
+
 		total_task_covered = sum([len(tasks) for tasks in self.mounting_point_tasks.values()])
 		if total_task_covered == 0:
 			coverange_distrib = [0 for _ in self.selected_mounting_point]
@@ -150,7 +156,10 @@ class ArmDeployment:
 			coverange_distrib = [len(tasks) / total_task_covered for tasks in self.mounting_point_tasks.values()]
 		entropy = - sum([p * (math.log(p) if p != 0 else 0) for p in coverange_distrib])
 		IoT = self.get_intersection_over_total()
-		return total_task_covered * entropy * math.exp(-self.alpha * IoT)
+		# print(self.alpha)
+		# print(IoT)
+		# print(total_covered_score, entropy, math.exp(-self.alpha * IoT))
+		return total_covered_score * entropy * math.exp(-self.alpha * IoT)
 
 	def reproduce(self, state, policy="random"):
 		"""
@@ -162,7 +171,7 @@ class ArmDeployment:
 		for m in state.selected_mounting_point:
 			new_selected_mounting_point.add(m)
 		new_selected_mounting_point = random.sample(list(new_selected_mounting_point), k=self.n_arm)
-		new_state = ArmDeployment(self.env, random.choice([self.max_district_size, state.max_district_size]))
+		new_state = ArmDeployment(self.env, random.choice([self.max_district_size, state.max_district_size]), alpha=self.alpha)
 		new_state.selected_mounting_point = new_selected_mounting_point
 		new_state.available_mounting_points = []
 		for m in new_state.env.mounting_points:
@@ -182,6 +191,15 @@ class ArmDeployment:
 		self.max_district_size = self.max_district_size + random.randint(-5, 5)
 		return self
 
+	def get_n_task_covered(self):
+		return sum([len(tasks) for tasks in self.mounting_point_tasks.values()])
+
+	def get_total_covered_score(self):
+		total_covered_score = 0
+		for m_point, tasks in self.mounting_point_tasks.items():
+			for task in tasks:
+				total_covered_score += task.get_task_score(m_point)
+		return total_covered_score
 	def get_standard_districts(self):
 		if not self.districts:
 			self.calculate_districts()
@@ -221,5 +239,14 @@ class ArmDeployment:
 					range(district.center[1] - district.down, district.center[1] + district.up + 1, 1)):
 				x, y = state_to_matrix(p)
 				matrix[x, y, :] = color
+
+		for t in self.env.tasks:
+			for inner in t.points:
+				matrix[state_to_matrix(inner)] = (0, 0, 0)
+
+		for (_, tasks), color in zip(self.mounting_point_tasks.items(), district_colors):
+			for task in tasks:
+				for t_point in task.points:
+					matrix[state_to_matrix(t_point)] = 1 - color
 		im.set_data(matrix)
 		plt.show()

@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from multiprocessing.pool import Pool
 
 
 def get_weight_population_by_fitness(population: list, fitness_function) -> list:
@@ -16,6 +17,15 @@ def get_weight_population_by_fitness(population: list, fitness_function) -> list
 		(configuration, configuration_fitness)
 		for (configuration, configuration_fitness) in zip(population, map(fitness_function, population))
 	]
+
+	# with Pool(8) as pool:
+	# 	weighted_population = [
+	# 		(configuration, configuration_fitness)
+	# 		for (configuration, configuration_fitness) in
+	# 		zip(population, pool.map(fitness_function, population, chunksize=5))
+	# 	]
+	# with ProcessPoolExecutor() as executor:
+	# 	configurations_validation_result = executor.map(TunerCV.fit_configuration, configurations_params)
 
 	# order by the fitness of configuration
 	weighted_population.sort(key=lambda x: x[1], reverse=True)
@@ -45,11 +55,20 @@ def choose_parents_population(population: list, fitness_function) -> tuple:
 	return picked_parents[0], picked_parents[1]
 
 
+def fitness_function(x):
+	return x.fitness()
+
+
+def reproduce(x, y):
+	return x.reproduce(y)
+
+
+def mutate(x):
+	return x.mutate()
+
+
 def genetic_algorithm(
 		population: list,
-		fitness_function=None,
-		reproduce=None,
-		mutate=None,
 		mutation_probability: float = None,
 		max_iter: int = 1000,
 		verbose: bool = False
@@ -63,12 +82,6 @@ def genetic_algorithm(
 	:param verbose: bool
 	:return: the best state in population, according to fitness
 	"""
-	if not fitness_function:
-		fitness_function = lambda x: x.fitness()
-	if not reproduce:
-		reproduce = lambda x, y: x.reproduce(y)
-	if not mutate:
-		mutate = lambda x: x.mutate()
 
 	for i in range(max_iter):  # iterate until some individual is fit enough, or enough time has elapsed
 		if verbose:
@@ -93,7 +106,7 @@ def genetic_algorithm(
 		if verbose:
 			fitness_values = get_weight_population_by_fitness(population, fitness_function)[0][1]
 			fitness_mean = fitness_values / 1
-			print("Mean fitness:", fitness_mean)
+			print("Mean best:", fitness_mean)
 
 	# return best individual found according to fitness
 	weighted_population = get_weight_population_by_fitness(population, fitness_function)

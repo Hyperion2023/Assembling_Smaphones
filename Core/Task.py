@@ -71,7 +71,7 @@ class Task:
         :return: Score value.
         """
         first_point = self.points[0]
-        self.score= self.value / (
+        self.score = self.value / (
                 self.distance + manhattan_distance(first_point, (mounting_point.x, mounting_point.y)))
         #print("SCORE: "+str(self.score))
         return self.score

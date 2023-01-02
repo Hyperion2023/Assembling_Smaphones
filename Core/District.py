@@ -79,3 +79,7 @@ class District:
         :param robotic_arm: A robotic arm that is mounted on a mounting point in the district.
         """
         self.robotic_arms.append(robotic_arm)
+
+    def is_in(self, p):
+        return self.origin[0] <= p[0] <= self.origin[0] + self.width - 1 and \
+            self.origin[1] <= p[1] <= self.origin[1] + self.height - 1

@@ -4,6 +4,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
+import Core
 from Core import Environment
 from Core.Utils.conversion import state_to_matrix
 from Core.Utils.distances import manhattan_distance, x_y_distance
@@ -217,6 +218,17 @@ class ArmDeployment:
 		self.selected_mounting_point.append(new_mounting_point)
 		self.max_district_size = self.max_district_size + random.randint(-5, 5)
 		return self
+
+	def get_standard_districts(self):
+		if not self.districts:
+			self.calculate_districts()
+		standard_districts = []
+		for d, m in zip(self.districts, self.selected_mounting_point):
+			standard_district = Core.District((d.center[0] - d.left, d.center[1] - d.down), d.left + d.right, d.down + d.up)
+			standard_district.mounting_points = [m]
+			standard_district.tasks = list(self.mounting_point_tasks[m])
+			standard_districts.append(standard_district)
+		return standard_districts
 
 	def draw_districts(self):
 		fig, ax = plt.subplots()

@@ -37,7 +37,7 @@ class State:
 
 	def check_boundaries(self, worker: Worker, move: str) -> tuple:
 		"""
-		Chek if a move would make an arm head finish out of the grid.
+		Chek if a move would make an arm head finish out of the district.
 		:param worker: the worker associated with the arm making the move
 		:param move: the move to be checked
 		:return: a tuple containing True in the first element if the move can be done, False otherwise.
@@ -56,9 +56,9 @@ class State:
 		else:
 			new_point = last_point
 
-		if new_point[0] >= np.shape(self.matrix)[1] or new_point[0] < 0:
+		if new_point[0] < worker.district.origin[0] or new_point[0] > worker.district.origin[0] + worker.district.width:
 			return False, (0, 0)
-		if new_point[1] >= np.shape(self.matrix)[0] or new_point[1] < 0:
+		if new_point[1] < worker.district.origin[1] or new_point[1] > worker.district.origin[1] + worker.district.height:
 			return False, (0, 0)
 		return True, new_point
 

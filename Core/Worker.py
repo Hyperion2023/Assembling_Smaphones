@@ -1,6 +1,6 @@
 from Core import Environment, RoboticArm, Task
 from Core.Planner.Path import OptimalPath
-
+from Core import District
 
 class Worker:
     """
@@ -23,7 +23,7 @@ class Worker:
 
 
     """
-    def __init__(self, arm: RoboticArm, task: Task, env: Environment):
+    def __init__(self, arm: RoboticArm, task: Task, env: Environment, district: District):
         """
         Worker Class, it takes and arm and a task and performs all the required step to complete the task.
         :param arm: Robotic Arm to cotrol
@@ -39,7 +39,12 @@ class Worker:
         self.plan = []  # TODO: implement in future version
         self.action_taken = False
         self.env = env
+        self.district = district
         #self.generate_optimal_path()
+
+    # this is need for CSP solver that order a list for Minimum Remaining Values heuristic
+    def __lt__(self, other):
+        return str(self) < str(other)
 
     def generate_optimal_path(self):
         self.optimal_path = OptimalPath(self.env)

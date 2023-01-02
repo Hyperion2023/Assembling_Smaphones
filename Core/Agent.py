@@ -1,12 +1,51 @@
 import random
 
-from Core import Worker, Environment
+from constraint import *
+from Core import Worker, Environment, RoboticArm, District
 from alive_progress import alive_bar
-from Core.Utils.conversion import global_coordinates_to_district_coordinates
 
+from Core.District_division.ArmDeployment import ArmDeployment
+from Core.Utils.conversion import global_coordinates_to_district_coordinates
+from Core.Utils.districts import get_districts_intersection
+from Core.District_division.genetic_algoritm import genetic_algorithm
+from Core.Utils.Dijkstra import *
 drawFlag = True
 sec_time = 10
-from Core.Utils.Dijkstra import *
+
+
+
+def get_times_in_shared_zone(worker, d):
+    t0 = None
+    t1 = None
+    head = (worker.arm.mounting_point.x, worker.arm.mounting_point.y)
+    path_in_shared_zone = [head]
+    for i, move in enumerate(worker.plan):
+        if move == "U":
+            head = (head[0], head[1] + 1)
+        elif move == "R":
+            head = (head[0] + 1, head[1])
+        elif move == "D":
+            head = (head[0], head[1] - 1)
+        elif move == "L":
+            head = (head[0] - 1, head[1])
+
+        if len(path_in_shared_zone) > 1:
+            if head == path_in_shared_zone[-2]:
+                path_in_shared_zone.pop()
+            else:
+                path_in_shared_zone.append(head)
+        elif d.is_in(head):
+            path_in_shared_zone.append(head)
+            if t0 is None:
+                t0 = i
+            t1 = None
+
+        if len(path_in_shared_zone) == 1:
+            path_in_shared_zone = [head]
+            if t1 is None:
+                t1 = i
+
+    return t0, t1
 
 class Agent:
     """
@@ -31,10 +70,11 @@ class Agent:
         :param environment: Collection of all the knowledge the Agent can access to in order to plan and move the arms.
         """
         self.environment = environment
-        self.n_total_arms = self.environment.n_robotic_arms
+        # self.n_total_arms = self.environment.n_robotic_arms
         self.running_workers = []
         self.deployed_arms = 0
-        self.active_mounting_points=[]
+        self.active_mounting_points = []
+        self.districts = None
 
     def update_step(self):
         """
@@ -175,3 +215,91 @@ class Agent:
 
         for worker in self.running_workers:
             print(worker.arm.moves)
+
+
+    def subdivide_in_districts(self, algorithm: str = "genetic", max_district_size=30, *args, **kwargs):
+        if algorithm == "genetic":
+            if "alpha" in kwargs:
+                alpha = kwargs["alpha"]
+            else:
+                alpha = 0.1
+            starting_population = [ArmDeployment(self.environment, max_district_size, alpha=alpha) for _ in range(20)]
+            for s in starting_population:
+                s.random_init()
+            subdivision = genetic_algorithm(starting_population, mutation_probability=0.3, max_iter=100, verbose=True)
+            self.districts = subdivision.get_standard_districts()
+
+    def plan_all_workers(self, planning_alg="astar"):
+        if not self.districts:
+            self.subdivide_in_districts()
+        for d in self.districts:
+            arm = RoboticArm()
+            arm.mount(d.mounting_point[0])
+            for t in d.tasks:
+                self.running_workers.append(Worker(arm, t, self.environment, district=d))
+        for worker in self.running_workers:
+            if planning_alg == "astar":
+                # worker.plan_with_astar()
+                worker.plan = ["U"]
+
+    def schedule_plans(self):
+        # self.plan_all_workers()
+        # intersecting_zones = {}
+        # for d1 in self.districts:
+        #     intersecting_zones[d1] = {}
+        #     for d2 in self.districts:
+        #         if d1 == d2:
+        #             continue
+        #         inter = get_districts_intersection(d1, d2)
+        #         if inter:
+        #             intersecting_zones[d1][d2] = inter
+
+        worker_time = {}
+        for worker in self.running_workers:
+            worker_time[worker] = len(worker.plan)
+
+        workers_shared_start = {}
+        workers_shared_end = {}
+        for worker in self.running_workers:
+            worker_shared_start = {}
+            worker_shared_end = {}
+            for d in self.districts:
+                if d == worker.district:
+                    continue
+                t0, t1 = get_times_in_shared_zone(worker, d)
+                if t0 is None:
+                    continue
+                worker_shared_start[d] = t0
+                worker_shared_end[d] = t1
+            workers_shared_start[worker] = worker_shared_start
+            workers_shared_end[worker] = worker_shared_end
+
+        problem = Problem()
+        for w in self.running_workers:
+            problem.addVariable(w, list(range(20 - len(w.plan))))
+
+        for w1 in self.running_workers:
+            for w2 in self.running_workers:
+                if w1 == w2:
+                    continue
+                if w1.district == w2.district:
+                    problem.addConstraint(create_constraint_same_district(w1, w2, worker_time), (w1, w2))
+                else:
+                    if w2.district in workers_shared_start[w1] and w1.district in workers_shared_start[w2]:
+                        problem.addConstraint(create_constraint_different_district(w1, w2, workers_shared_start, workers_shared_end), (w1, w2))
+
+        solution = problem.getSolution()
+        return solution
+
+
+# functions that create a lambda because python sucks and always do late binding
+def create_constraint_same_district(w1, w2, worker_time):
+    return lambda v1, v2: v1 + worker_time[w1] < v2 or v2 + worker_time[w2] < v1
+
+
+def create_constraint_different_district(w1, w2, workers_shared_start, workers_shared_end):
+    return lambda v1, v2: v1 + workers_shared_start[w1][w2.district] > \
+                               v2 + workers_shared_end[w2][w1.district] or \
+                               v1 + workers_shared_end[w1][w2.district] < \
+                               v2 + workers_shared_start[w2][w1.district]
+

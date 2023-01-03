@@ -1,15 +1,15 @@
 from Core import Agent
 from Core.Utils.Data import create_Environment
 import time
-path = r"Dataset/d_tight_schedule.txt"
+path = r"Dataset/e_dense_workspace.txt"
 
 env = create_Environment(path)
 # env.draw()
 boomer = Agent(env)
 # boomer.environment.show()
 # boomer.deploy_arms("rand")
-boomer.subdivide_in_districts(algorithm="hill_climbing", max_district_size=25, n_restart=1, max_iter=10)
-boomer.plan_all_workers(planning_alg="astar", a_star_max_trials=1000, retract_policy="1/4")
+boomer.subdivide_in_districts(algorithm="hill_climbing", max_district_size=20, max_iter=100, n_restart=1)
+boomer.plan_all_workers(planning_alg="astar", a_star_max_trials=10000, retract_policy="1/2")
 boomer.schedule_plans()
 boomer.run_schedule()
 

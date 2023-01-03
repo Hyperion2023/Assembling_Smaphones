@@ -159,7 +159,8 @@ class ArmDeployment:
 		# print(self.alpha)
 		# print(IoT)
 		# print(total_covered_score, entropy, math.exp(-self.alpha * IoT))
-		# entropy = 1
+		if len(self.selected_mounting_point) == 1:
+			entropy = 1
 		return total_covered_score * entropy * math.exp(-self.alpha * IoT)
 
 	def reproduce(self, state, policy="random"):

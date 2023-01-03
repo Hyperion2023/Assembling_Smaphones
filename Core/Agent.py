@@ -1,4 +1,6 @@
+import math
 import random
+import statistics
 
 from constraint import *
 from Core import Worker, Environment
@@ -224,7 +226,6 @@ class Agent:
 
 
     def subdivide_in_districts(self, algorithm: str = "genetic", max_iter=100, max_district_size=30, alpha=0.3, verbose=False, **kwargs):
-
         def get_starting_state():
             s = ArmDeployment(self.environment, max_district_size, alpha=alpha)
             s.random_init()
@@ -263,6 +264,7 @@ class Agent:
         else:
             raise ValueError("algorithm not recognized")
         self.districts = subdivision.get_standard_districts()
+        subdivision.draw_districts()
         print("total covered tasks:", subdivision.get_n_task_covered())
 
     def plan_all_workers(self, planning_alg="astar", **kwargs):
@@ -284,8 +286,10 @@ class Agent:
                 else:
                     retract_policy = "1/2"
                 worker.plan_with_astar(a_star_max_trials, retract_policy)
+            # if planning_alg == "diskj---":
+            #     worker.plan =
 
-        for
+        self.workers = [worker for worker in self.workers if worker.plan is not None]
         self.planned = True
 
     def schedule_plans(self):
@@ -323,26 +327,61 @@ class Agent:
             workers_shared_end[worker] = worker_shared_end
 
         problem = Problem()
-        for w in self.workers:
-            problem.addVariable(w, list(range(self.environment.n_steps - len(w.plan))))
 
-        for w in self.workers:
-            if len(w.plan) > 100:
-                problem.addConstraint(lambda v: v < 10, (w,))
-                break
+        class WorkerFlip:
+            def __init__(self, w):
+                self.w = w
 
-        for w1 in self.workers:
-            for w2 in self.workers:
+            def __lt__(self, other):
+                return str(self) < str(other)
+
+        worker_flips = []
+        average_value = statistics.mean([w.value for w in self.workers])
+        for w in self.workers:
+            worker_flip = WorkerFlip(w)
+            problem.addVariable(w, list(range(0, self.environment.n_steps - len(w.plan), 5)))
+            if w.value > average_value:
+                problem.addVariable(worker_flip, [True])
+            else:
+                problem.addVariable(worker_flip, [True, False])
+            worker_flips.append(worker_flip)
+        # for w in self.workers:
+        #     if len(w.plan) > 100:
+        #         problem.addConstraint(lambda v: v < 10, (w,))
+        #         break
+
+        for w1, wf1 in zip(self.workers, worker_flips):
+            for w2, wf2 in zip(self.workers, worker_flips):
                 if w1 == w2:
                     continue
                 if w1.district == w2.district:
-                    problem.addConstraint(create_constraint_same_district(w1, w2, worker_time), (w1, w2))
+                    problem.addConstraint(create_constraint_same_district(w1, w2, worker_time), (w1, w2, wf1, wf2))
                 else:
                     if w2.district in workers_shared_start[w1] and w1.district in workers_shared_start[w2]:
-                        problem.addConstraint(create_constraint_different_district(w1, w2, workers_shared_start, workers_shared_end), (w1, w2))
+                        problem.addConstraint(create_constraint_different_district(w1, w2, workers_shared_start, workers_shared_end), (w1, w2, wf1, wf2))
 
-        self.schedule = problem.getSolution()
-        return self.schedule
+        self.schedule = problem.getSolutions()
+        best_schedule = None
+        best_score = 0
+        for s in self.schedule:
+            score = 0
+            for var, val in s.items():
+                if isinstance(var, WorkerFlip):
+                    if val:
+                        score += var.w.task.value
+            if score > best_score:
+                best_schedule = s
+                best_score = score
+        self.schedule = {}
+        if best_schedule is not None:
+            for var, val in best_schedule.items():
+                if isinstance(var, WorkerFlip):
+                    if val:
+                        self.schedule[var.w] = best_schedule[var.w]
+
+            min_time = min(*self.schedule.values())
+            self.schedule = {w: t - min_time for w, t in self.schedule.items()}
+            return self.schedule
 
     def run_schedule(self):
         if not self.schedule:
@@ -367,11 +406,21 @@ class Agent:
 
 # functions that create a lambda because python sucks and always do late binding
 def create_constraint_same_district(w1, w2, worker_time):
-    return lambda v1, v2: v1 + worker_time[w1] < v2 or v2 + worker_time[w2] < v1
+    def f(v1, v2, vf1, vf2):
+        if vf1 and vf2:
+            return v1 + worker_time[w1] < v2 or v2 + worker_time[w2] < v1
+        else:
+            return True
+    return f
 
 
 def create_constraint_different_district(w1, w2, workers_shared_start, workers_shared_end):
-    return lambda v1, v2: v1 + workers_shared_start[w1][w2.district] > \
+    def f(v1, v2, vf1, vf2):
+        if vf1 and vf2:
+            return v1 + workers_shared_start[w1][w2.district] > \
                                v2 + workers_shared_end[w2][w1.district] or \
                                v1 + workers_shared_end[w1][w2.district] < \
                                v2 + workers_shared_start[w2][w1.district]
+        else:
+            return True
+    return f

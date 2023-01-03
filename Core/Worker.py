@@ -1,7 +1,11 @@
-from Core import Environment, RoboticArm, Task
+import time
+
+from Core import Environment, RoboticArm, Task, District
+import types
+if isinstance(District, types.ModuleType):
+    District = District.District
 from Core.Astar import State, a_star, goal_test, h, g
 from Core.Planner.Path import OptimalPath
-from Core import District
 from copy import deepcopy
 
 class Worker:
@@ -20,7 +24,7 @@ class Worker:
         The plan of the arm to follow.
     action_taken: bool
         Whether the action was taken.
-    env: Core.Environment.Environment
+    env: Core.Environment
         The environment in which the worker is running.
 
 
@@ -111,23 +115,27 @@ class Worker:
             return False, (0, 0)  # TODO: to modify for real collision_check
 
     def plan_with_astar(self, a_star_max_trials, retract_policy="1/2"):
-        starting_state = State(self.env.matrix, [self])
+        starting_state = State(self.env.matrix, [self], retract_policy="soft_retract")
         finished = False
-        while not finished:
+        t = time.time()
+        while not finished or time.time() - t > 60:
             final_state, finished = a_star(starting_state, goal_test, g, h, a_star_max_trials)
             if not finished:
+                final_state.retract_policy = "hard_retract"
                 if isinstance(retract_policy, int):
                     final_state.workers[0].retract_n_steps(retract_policy)
                 elif isinstance(retract_policy, str):
                     split_retract_policy = retract_policy.split("/")
                     try:
-                        final_state.workers[0].retract_n_steps(int((len(final_state.workers[0].arm.path) - 1) * int(split_retract_policy[0]) / int(split_retract_policy[1])))
-                    except (IndexError, ValueError):
+                        step_to_retract = int((len(final_state.workers[0].arm.path) - 1) * int(split_retract_policy[0]) / int(split_retract_policy[1]))
+                        if step_to_retract != 0:
+                            final_state.workers[0].retract_n_steps(step_to_retract)
+                    except (IndexError, ValueError) as e:
+                        print(e)
                         raise ValueError("invalid retract policy")
                 else:
                     raise ValueError("invalid retract policy")
                 starting_state = final_state
-                starting_state.optimal = False
         final_state.workers[0].retract_all()
         self.plan = final_state.workers[0].arm.moves
     def __deepcopy__(self, memodict={}):

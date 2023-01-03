@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as patches
 
-from Core import District, RoboticArm, MountingPoint, Task
+from Core import RoboticArm, MountingPoint, Task
 from Core.Utils.conversion import *
 
 
@@ -10,7 +10,7 @@ class Environment:
     """
     Class which contains all the information about the environment.
     """
-    def __init__(self, width: int, height: int, n_steps: int, n_robotic_arms: int, district_size: int = 17):
+    def __init__(self, width: int, height: int, n_steps: int, n_robotic_arms: int):
         """
         Constructor of the Environment Object. It receives the information from the given txt file configuration and
         adapts it in order to let the Agent generate the plans for the robotic arms.
@@ -24,7 +24,6 @@ class Environment:
         self.width = width
         self.height = height
         self.districts = []  # this will be a list of list
-        self.district_size = district_size
         self.n_steps = n_steps
         self.current_step = 0
         self.fig = plt.figure()
@@ -42,24 +41,24 @@ class Environment:
 
         # subdivide the grid in district
         # if the width or height is not a multiple of district_size extend the last district to cover the grid
-        for i in range(0, self.width, district_size):
-            row = []
-            if self.width - i < district_size:
-                break
-            if self.width - i < 2 * district_size:
-                size_x = self.width - i
-            else:
-                size_x = district_size
-            for j in range(0, self.height, district_size):
-                if self.height - j < district_size:
-                    break
-                if self.height - j < 2 * district_size:
-                    size_y = self.height - j
-                else:
-                    size_y = district_size
-                new_district = District.District((i, j), size_x, size_y)
-                row.append(new_district)
-            self.districts.append(row)
+        # for i in range(0, self.width, district_size):
+        #     row = []
+        #     if self.width - i < district_size:
+        #         break
+        #     if self.width - i < 2 * district_size:
+        #         size_x = self.width - i
+        #     else:
+        #         size_x = district_size
+        #     for j in range(0, self.height, district_size):
+        #         if self.height - j < district_size:
+        #             break
+        #         if self.height - j < 2 * district_size:
+        #             size_y = self.height - j
+        #         else:
+        #             size_y = district_size
+        #         new_district = District.District((i, j), size_x, size_y)
+        #         row.append(new_district)
+        #     self.districts.append(row)
 
         self.tasks = []
         self.mounting_points = []
@@ -74,26 +73,26 @@ class Environment:
         :param task_positions: List of coordinates for each task.
         """
         for task, positions in zip(tasks, task_positions):
-            t = Task.Task(int((task.split(" "))[0]), int((task.split(" "))[1]))
+            t = Task(int((task.split(" "))[0]), int((task.split(" "))[1]))
             for index in range(0, t.n_points * 2, 2):
                 t.add_point(int((positions.split(" "))[index]), int((positions.split(" "))[index + 1]))
             self.tasks.append(t)
-            first_point = t.points[0]
-            self.calculate_district(first_point[0], first_point[1]).add_task(t)
+            # first_point = t.points[0]
+            # self.calculate_district(first_point[0], first_point[1]).add_task(t)
 
-    def calculate_district(self, x: int, y: int) -> District:
-        """
-        Given the x and y coordinates of a point, returns the district in which it is located.
-        :param x: X coordinate.
-        :param y: Y coordinate.
-        :return: District in which the point is located.
-        """
-        dx, dy = int(x / self.district_size), int(y / self.district_size)
-        if dx > len(self.districts) - 1:
-            dx = len(self.districts) - 1
-        if dy > len(self.districts[0]) - 1:
-            dy = len(self.districts[0]) - 1
-        return self.districts[dx][dy]
+    # def calculate_district(self, x: int, y: int) -> District:
+    #     """
+    #     Given the x and y coordinates of a point, returns the district in which it is located.
+    #     :param x: X coordinate.
+    #     :param y: Y coordinate.
+    #     :return: District in which the point is located.
+    #     """
+    #     dx, dy = int(x / self.district_size), int(y / self.district_size)
+    #     if dx > len(self.districts) - 1:
+    #         dx = len(self.districts) - 1
+    #     if dy > len(self.districts[0]) - 1:
+    #         dy = len(self.districts[0]) - 1
+    #     return self.districts[dx][dy]
 
     def add_robotic_arm(self, mounting_point: MountingPoint) -> RoboticArm:
         """
@@ -107,10 +106,10 @@ class Environment:
         # if mounting_point.occupied:
         #     raise ValueError("mounting point already occupied")
 
-        arm = RoboticArm.RoboticArm()
+        arm = RoboticArm()
         arm.mount(mounting_point)
         self.robotic_arms.append(arm)
-        self.calculate_district(mounting_point.x, mounting_point.y).add_robotic_arm(arm)
+        # self.calculate_district(mounting_point.x, mounting_point.y).add_robotic_arm(arm)
         return arm
 
     def add_mounting_points(self, mounting_points: list):
@@ -119,9 +118,10 @@ class Environment:
         :param mounting_points: List of the x and y coordinates of the mounting points.
         """
         for m in mounting_points:
-            mounting_point = MountingPoint.MountingPoint(m[0], m[1])
+            mounting_point = MountingPoint(m[0], m[1])
             self.mounting_points.append(mounting_point)
-            self.calculate_district(mounting_point.x, mounting_point.y).add_mounting_point(mounting_point)
+            # self.calculate_district(mounting_point.x, mounting_point.y).add_mounting_point(mounting_point)
+            self.matrix[state_to_matrix(m)] = (1, 0, 0)
 
     def update_time(self):
         """
@@ -165,7 +165,7 @@ class Environment:
             # print(len(robotic_arm.moves))
 
             return False, (0, 0)
-        flag = False
+        retract_flag = False
         last_point = robotic_arm.path[-1]
         # print("ARM LASTPOINT: " + str(last_point))
         if action == "U":
@@ -181,17 +181,17 @@ class Environment:
 
         if len(robotic_arm.path) >= 2:
             if new_point == robotic_arm.path[-2]:
-                flag = True
+                retract_flag = True
         # print("NEWPOINT: " +str(new_point))
-        if not flag:
-            if new_point[0] > self.width or new_point[0] < 0:
+        if not retract_flag:
+            if new_point[0] >= self.width or new_point[0] < 0:
                 return False, (0, 0)
-            if new_point[1] > self.height or new_point[1] < 0:
+            if new_point[1] >= self.height or new_point[1] < 0:
                 return False, (0, 0)
 
             # check if new_point is on a mounting point
             for m in self.mounting_points:
-                if new_point[0] == m.x and new_point[1] == m.y:
+                if m != robotic_arm.mounting_point and new_point[0] == m.x and new_point[1] == m.y:
                     return False, (0, 0)
 
             # check if new_point collide with another robotic arm
@@ -229,7 +229,7 @@ class Environment:
         self.matrix = np.ones((self.height, self.width, 3))*0.8
 
         x = [i for i in range(self.width)]
-        y = [ i for i in range(self.height)]
+        y = [i for i in range(self.height)]
 
 
         self.ax.xaxis.set(ticks=np.arange(0, len(x)), ticklabels=x)
@@ -250,11 +250,11 @@ class Environment:
                     self.matrix[state_to_matrix(points)] = (1, 0.5, 0)
 
         for m in self.mounting_points:
-            self.matrix[state_to_matrix([m.x, m.y])] = (1, 0, 0)
+            self.matrix[state_to_matrix((m.x, m.y))] = (1, 0, 0)
         self.im.set_data(self.matrix)
-        for row in self.districts:
-            for district in row:
-                self.ax.add_patch(patches.Rectangle((district.origin[0]-0.5,district.origin[1]-0.5), district.width, district.height, linewidth=1, edgecolor='b', facecolor='none'))
+        # for row in self.districts:
+        #     for district in row:
+        #         self.ax.add_patch(patches.Rectangle((district.origin[0]-0.5,district.origin[1]-0.5), district.width, district.height, linewidth=1, edgecolor='b', facecolor='none'))
 
         plt.draw()
         plt.pause(0.1)

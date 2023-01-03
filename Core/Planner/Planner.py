@@ -1,8 +1,8 @@
 from Core.Utils.Dijkstra import *
-import Core
+from Core import Environment
 class Planner:
 
-    def __init__(self,environment: Core.Environment.Environment):
+    def __init__(self, environment:Environment):
         self.environment = environment
         create_graph_from_district(self.environment)
 

@@ -1,5 +1,5 @@
 from Core.Utils.Data import create_Environment
-from Core.Agent import Agent
+from Core import Agent
 from Core.Astar.State import State
 from Core.Astar.Astar import a_star
 from Core.Astar.heuristic import *

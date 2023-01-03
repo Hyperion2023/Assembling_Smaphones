@@ -1,13 +1,14 @@
 import random
 
 from constraint import *
-from Core import Worker, Environment, RoboticArm, District
-from alive_progress import alive_bar
-
-from Core.District_division.ArmDeployment import ArmDeployment
-from Core.Utils.conversion import global_coordinates_to_district_coordinates
-from Core.Utils.districts import get_districts_intersection
+from Core import Worker, Environment
+import types
+if isinstance(Worker, types.ModuleType):
+    Worker = Worker.Worker
+from Core.District_division import ArmDeployment
 from Core.District_division.genetic_algoritm import genetic_algorithm
+from Core.District_division.hill_climbing import hill_climbing
+from Core.District_division.simulated_annealing import simulated_annealing
 from Core.Utils.Dijkstra import *
 drawFlag = True
 sec_time = 10
@@ -71,10 +72,13 @@ class Agent:
         """
         self.environment = environment
         self.n_total_arms = self.environment.n_robotic_arms
+        self.workers = []
         self.running_workers = []
         self.deployed_arms = 0
         self.active_mounting_points = []
         self.districts = None
+        self.schedule = None
+        self.planned = False
 
     def update_step(self):
         """
@@ -219,33 +223,72 @@ class Agent:
             print(worker.arm.moves)
 
 
-    def subdivide_in_districts(self, algorithm: str = "genetic", max_district_size=30, *args, **kwargs):
-        if algorithm == "genetic":
-            if "alpha" in kwargs:
-                alpha = kwargs["alpha"]
-            else:
-                alpha = 0.1
-            starting_population = [ArmDeployment(self.environment, max_district_size, alpha=alpha) for _ in range(20)]
-            for s in starting_population:
-                s.random_init()
-            subdivision = genetic_algorithm(starting_population, mutation_probability=0.3, max_iter=100, verbose=True)
-            self.districts = subdivision.get_standard_districts()
+    def subdivide_in_districts(self, algorithm: str = "genetic", max_iter=100, max_district_size=30, alpha=0.3, verbose=False, **kwargs):
 
-    def plan_all_workers(self, planning_alg="astar"):
+        def get_starting_state():
+            s = ArmDeployment(self.environment, max_district_size, alpha=alpha)
+            s.random_init()
+            return s
+
+        if algorithm == "genetic":
+            if "mutation_prob" in kwargs:
+                mut_prob = kwargs["mutation_prob"]
+            else:
+                mut_prob = 0.3
+            if "population_size" in kwargs:
+                population_size = kwargs["population_size"]
+            else:
+                population_size = 20
+            subdivision = genetic_algorithm(get_starting_state, population_size, mutation_probability=mut_prob, max_iter=max_iter, verbose=verbose)
+        elif algorithm == "hill_climbing":
+            if "n_restart" in kwargs:
+                n_restart = kwargs["n_restart"]
+            else:
+                n_restart = 5
+            if "policy" in kwargs:
+                policy = kwargs["policy"]
+            else:
+                policy = "get_first"
+            subdivision = hill_climbing(get_starting_state, max_iter, n_restart, policy)
+        elif algorithm == "simulated_annealing":
+            if "n_restart" in kwargs:
+                n_restart = kwargs["n_restart"]
+            else:
+                n_restart = 5
+            if "initial_temperature" in kwargs:
+                initial_temperature = kwargs["initial_temperature"]
+            else:
+                initial_temperature = "get_first"
+            subdivision = simulated_annealing(get_starting_state, max_iter, n_restart, initial_temperature)
+        else:
+            raise ValueError("algorithm not recognized")
+        self.districts = subdivision.get_standard_districts()
+        print("total covered tasks:", subdivision.get_n_task_covered())
+
+    def plan_all_workers(self, planning_alg="astar", **kwargs):
         if not self.districts:
             self.subdivide_in_districts()
         for d in self.districts:
-            arm = RoboticArm()
-            arm.mount(d.mounting_point[0])
+            arm = self.environment.add_robotic_arm(d.mounting_points[0])
             for t in d.tasks:
-                self.running_workers.append(Worker(arm, t, self.environment, district=d))
-        for worker in self.running_workers:
+                self.workers.append(Worker(arm, t, self.environment, district=d))
+        for i, worker in enumerate(self.workers):
+            print("worker", i)
             if planning_alg == "astar":
-                # worker.plan_with_astar()
-                worker.plan = ["U"]
+                if "a_star_max_trials" in kwargs:
+                    a_star_max_trials = kwargs["a_star_max_trials"]
+                else:
+                    a_star_max_trials = 1000
+                if "retract_policy" in kwargs:
+                    retract_policy = kwargs["retract_policy"]
+                else:
+                    retract_policy = "1/2"
+                worker.plan_with_astar(a_star_max_trials, retract_policy)
+
+        for
+        self.planned = True
 
     def schedule_plans(self):
-        # self.plan_all_workers()
         # intersecting_zones = {}
         # for d1 in self.districts:
         #     intersecting_zones[d1] = {}
@@ -256,13 +299,16 @@ class Agent:
         #         if inter:
         #             intersecting_zones[d1][d2] = inter
 
+        if not self.planned:
+            self.plan_all_workers()
+
         worker_time = {}
-        for worker in self.running_workers:
+        for worker in self.workers:
             worker_time[worker] = len(worker.plan)
 
         workers_shared_start = {}
         workers_shared_end = {}
-        for worker in self.running_workers:
+        for worker in self.workers:
             worker_shared_start = {}
             worker_shared_end = {}
             for d in self.districts:
@@ -277,11 +323,16 @@ class Agent:
             workers_shared_end[worker] = worker_shared_end
 
         problem = Problem()
-        for w in self.running_workers:
-            problem.addVariable(w, list(range(20 - len(w.plan))))
+        for w in self.workers:
+            problem.addVariable(w, list(range(self.environment.n_steps - len(w.plan))))
 
-        for w1 in self.running_workers:
-            for w2 in self.running_workers:
+        for w in self.workers:
+            if len(w.plan) > 100:
+                problem.addConstraint(lambda v: v < 10, (w,))
+                break
+
+        for w1 in self.workers:
+            for w2 in self.workers:
                 if w1 == w2:
                     continue
                 if w1.district == w2.district:
@@ -290,8 +341,28 @@ class Agent:
                     if w2.district in workers_shared_start[w1] and w1.district in workers_shared_start[w2]:
                         problem.addConstraint(create_constraint_different_district(w1, w2, workers_shared_start, workers_shared_end), (w1, w2))
 
-        solution = problem.getSolution()
-        return solution
+        self.schedule = problem.getSolution()
+        return self.schedule
+
+    def run_schedule(self):
+        if not self.schedule:
+            self.schedule_plans()
+
+        for t in range(self.environment.n_steps):
+            for worker in self.workers:
+                if self.schedule[worker] == t:
+                    self.running_workers.append(worker)
+                if worker in self.running_workers and self.schedule[worker] + len(worker.plan) == t:
+                    self.running_workers.remove(worker)
+
+            for worker in self.running_workers:
+                if not self.environment.move_robotic_arm(worker.arm, worker.plan[t - self.schedule[worker]]):
+                    raise Exception("Something in plan was wrong")
+
+            self.environment.update_time()
+            if drawFlag:
+                self.environment.draw(agent=self)
+
 
 
 # functions that create a lambda because python sucks and always do late binding
@@ -304,4 +375,3 @@ def create_constraint_different_district(w1, w2, workers_shared_start, workers_s
                                v2 + workers_shared_end[w2][w1.district] or \
                                v1 + workers_shared_end[w1][w2.district] < \
                                v2 + workers_shared_start[w2][w1.district]
-

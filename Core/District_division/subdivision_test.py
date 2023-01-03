@@ -1,7 +1,7 @@
 from Core.Utils.Data import create_Environment
-from Core.District_division.genetic_algoritm import *
-from Core.District_division.ArmDeployment import ArmDeployment
-from Core.District_division.simulated_annealing import simulated_annealing
+from genetic_algoritm import genetic_algorithm
+from ArmDeployment import ArmDeployment
+from simulated_annealing import simulated_annealing
 
 path = r"./../../Dataset/b_single_arm.txt"
 

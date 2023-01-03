@@ -1,4 +1,3 @@
-import Core
 def state_to_matrix(p: tuple) -> tuple:
     """
     Convert a state vector into matrix coordinates.

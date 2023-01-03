@@ -1,7 +1,4 @@
-from Core import Agent, Worker
-from Core.District import District
-from Core.RoboticArm import RoboticArm
-from Core.MountingPoint import MountingPoint
+from Core import Agent, Worker, District, RoboticArm, MountingPoint
 
 
 agent = Agent(None)

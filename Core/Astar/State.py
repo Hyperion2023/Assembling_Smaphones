@@ -3,18 +3,15 @@ import copy
 import numpy as np
 import random
 
-import Core
 from Core.Utils.conversion import *
-from Core import Worker
 from Core.Utils.distances import manhattan_distance
-from Core.Utils.moves import opposite_move
 
 class State:
 	"""
 	Class that represent a state of the problem, consisting of the grid (immutable and shared between all states)
 	and the workers that are present in the problem
 	"""
-	def __init__(self, matrix: np.array, workers: list, n_step: int = 0, optimal: bool = True):
+	def __init__(self, matrix: np.array, workers: list, n_step: int = 0, retract_policy: str = "None"):
 		self.matrix = matrix
 		self.n_worker = len(workers)
 		self.workers = workers
@@ -22,7 +19,7 @@ class State:
 		self.f = None
 		self.g = None
 		self.h = None
-		self.optimal = optimal
+		self.retract_policy = retract_policy
 
 	def __lt__(self, other: object) -> bool:
 		"""
@@ -37,7 +34,7 @@ class State:
 		else:
 			return self.f < other.f
 
-	def check_boundaries(self, worker: Worker, move: str) -> tuple:
+	def check_boundaries(self, worker, move: str) -> tuple:
 		"""
 		Chek if a move would make an arm head finish out of the district.
 		:param worker: the worker associated with the arm making the move
@@ -115,14 +112,14 @@ class State:
 				if len(moves) == 1 and new_worker.task_points_done < new_worker.task.n_points:
 					closest_p = new_worker.arm.path[-1]
 					moves_to_retract = -1
-					if self.optimal:
+					if self.retract_policy == "soft_retract":
 						for p in reversed(new_worker.arm.path):
 							if manhattan_distance(p, new_worker.task.points[new_worker.task_points_done]) > \
 								manhattan_distance(closest_p, new_worker.task.points[new_worker.task_points_done]):
 								break
 							closest_p = p
 							moves_to_retract += 1
-					else:
+					elif self.retract_policy == "hard_retract":
 						for i, p in enumerate(reversed(new_worker.arm.path)):
 							if manhattan_distance(p, new_worker.task.points[new_worker.task_points_done]) <= \
 								manhattan_distance(closest_p, new_worker.task.points[new_worker.task_points_done]):
@@ -136,7 +133,7 @@ class State:
 
 			new_workers.append(new_worker)
 
-		return True, State(self.matrix, new_workers, self.n_step + 1)
+		return True, State(self.matrix, new_workers, self.n_step + 1, retract_policy=self.retract_policy)
 
 	def get_children(self):
 		"""

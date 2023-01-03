@@ -1,9 +1,8 @@
 from queue import PriorityQueue
 import heapq
-from Core.Astar import State
 
 
-def a_star(starting_state: State, goal_test: callable, g: callable, h: callable, max_state_evaluated: int = -1):
+def a_star(starting_state, goal_test: callable, g: callable, h: callable, max_state_evaluated: int = -1):
     """
     A star search algorithm implementation
     :param starting_state: the starting state of the search

@@ -68,7 +68,8 @@ def mutate(x):
 
 
 def genetic_algorithm(
-		population: list,
+		get_starting_state: callable,
+		poplulation_size: int,
 		mutation_probability: float = None,
 		max_iter: int = 1000,
 		verbose: bool = False
@@ -82,6 +83,7 @@ def genetic_algorithm(
 	:param verbose: bool
 	:return: the best state in population, according to fitness
 	"""
+	population = [get_starting_state() for _ in range(poplulation_size)]
 
 	for i in range(max_iter):  # iterate until some individual is fit enough, or enough time has elapsed
 		if verbose:

@@ -30,15 +30,15 @@ def a_star(starting_state, goal_test: callable, g: callable, h: callable, max_st
         if states_evaluated != -1 and states_evaluated > max_state_evaluated:
             return best_state, False
         # current_state = heapq.heappop(fringe)
-        if states_evaluated % 50 == 0:
-            print("f", current_state.f, end="\t")
-            print("g: ", current_state.g, end="\t")
-            print("h: ", current_state.h, end="\t")
-            print("tpd: ", current_state.workers[0].task_points_done, end="\t")
-            print("state evaluated", states_evaluated, end="\r")
+        # if states_evaluated % 50 == 0:
+        #     print("f", current_state.f, end="\t")
+        #     print("g: ", current_state.g, end="\t")
+        #     print("h: ", current_state.h, end="\t")
+        #     print("tpd: ", current_state.workers[0].task_points_done, end="\t")
+        #     print("state evaluated", states_evaluated, end="\r")
 
         if goal_test(current_state):
-            print("n of state evaluated: ", states_evaluated)
+            # print("n of state evaluated: ", states_evaluated)
             return current_state, True
         for i, child in enumerate(current_state.get_children()):
             # print(i, end="\r")

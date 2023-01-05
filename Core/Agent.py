@@ -1,7 +1,7 @@
 import math
 import random
 import statistics
-
+from concurrent.futures import ProcessPoolExecutor
 from constraint import *
 from Core import Worker, Environment
 import types
@@ -15,6 +15,9 @@ from Core.Utils.Dijkstra import *
 drawFlag = True
 sec_time = 10
 
+
+def plan_a_star(w, max_trials, rp):
+    return w.plan_with_astar(max_trials, rp)
 
 
 def get_times_in_shared_zone(worker, d):
@@ -270,26 +273,37 @@ class Agent:
     def plan_all_workers(self, planning_alg="astar", **kwargs):
         if not self.districts:
             self.subdivide_in_districts()
+        if planning_alg == "astar":
+            if "a_star_max_trials" in kwargs:
+                a_star_max_trials = kwargs["a_star_max_trials"]
+            else:
+                a_star_max_trials = 1000
+            if "retract_policy" in kwargs:
+                retract_policy = kwargs["retract_policy"]
+            else:
+                retract_policy = "1/2"
+            if "max_time" in kwargs:
+                max_time = kwargs["max_time"]
+            else:
+                max_time = "30"
+
         for d in self.districts:
             arm = self.environment.add_robotic_arm(d.mounting_points[0])
             for t in d.tasks:
                 self.workers.append(Worker(arm, t, self.environment, district=d))
-        for i, worker in enumerate(self.workers):
-            print("worker", i)
-            if planning_alg == "astar":
-                if "a_star_max_trials" in kwargs:
-                    a_star_max_trials = kwargs["a_star_max_trials"]
-                else:
-                    a_star_max_trials = 1000
-                if "retract_policy" in kwargs:
-                    retract_policy = kwargs["retract_policy"]
-                else:
-                    retract_policy = "1/2"
-                worker.plan_with_astar(a_star_max_trials, retract_policy)
-            # if planning_alg == "diskj---":
-            #     worker.plan =
 
-        self.workers = [worker for worker in self.workers if worker.plan is not None]
+        # params = (self.workers, [a_star_max_trials for _ in self.workers], [retract_policy for _ in self.workers])
+        #
+        # with ProcessPoolExecutor() as executor:
+        #     results = executor.map(plan_a_star, *params)
+        results = []
+        with alive_bar(len(self.workers), bar="bubbles", dual_line=True,
+                       title='Planning paths') as bar:
+            for worker in self.workers:
+                results.append(worker.plan_with_astar(a_star_max_trials, retract_policy, max_time))
+                bar(1)
+
+        self.workers = [worker for worker in results if worker.plan is not None]
         self.planned = True
 
     def schedule_plans(self):

@@ -115,13 +115,13 @@ class Worker:
         else:
             return False, (0, 0)  # TODO: to modify for real collision_check
 
-    def plan_with_astar(self, a_star_max_trials, retract_policy="1/2"):
+    def plan_with_astar(self, a_star_max_trials, retract_policy="1/2", max_time=30):
         starting_state = State(self.env.matrix, [self], retract_policy="soft_retract")
         finished = False
         t = time.time()
         timeout = False
         while not finished:
-            if time.time() - t > 300:
+            if time.time() - t > max_time:
                 timeout = True
                 break
             final_state, finished = a_star(starting_state, goal_test, g, h, a_star_max_trials)
@@ -143,10 +143,12 @@ class Worker:
                 starting_state = final_state
         if timeout:
             self.plan = None
-            return
+            return self
         final_state.workers[0].retract_all()
         self.plan = final_state.workers[0].arm.moves
         self.value = self.task.value / len(self.plan)
+        return self
+
     def __deepcopy__(self, memodict={}):
         w = Worker(deepcopy(self.arm, memodict), self.task, env=self.env, district=self.district)
         w.task_points_done = self.task_points_done

@@ -1,0 +1,6 @@
+numpy~=1.23.4
+matplotlib~=3.6.2
+setuptools~=65.6.3
+joblib~=1.2.0
+tqdm~=4.64.1
+python-constraint~=1.4.0

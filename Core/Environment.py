@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as patches
-
 from Core import RoboticArm, MountingPoint, Task
 from Core.Utils.conversion import *
 
@@ -37,7 +36,8 @@ class Environment:
         # plt.grid()
         mng = plt.get_current_fig_manager()
         ### works on Ubuntu??? >> did NOT working on windows
-        #mng.resize(*mng.window.maxsize())
+        mng.window.showMaximized()
+
 
         # subdivide the grid in district
         # if the width or height is not a multiple of district_size extend the last district to cover the grid
@@ -257,7 +257,6 @@ class Environment:
 
         self.fig.suptitle(self.current_step)
         plt.draw()
-        plt.pause(0.1)
-
-        #input("WAIT A SECOND PLX")
+        plt.pause(0.2)
+        # input("WAIT A SECOND PLX")
 

@@ -5,7 +5,8 @@ import types
 if isinstance(District, types.ModuleType):
     District = District.District
 from Core.Astar import State, a_star, goal_test, h, g
-from Core.Planner.Path import OptimalPath
+from Core.Utils.Dijkstra import create_district_graph_from_env
+from Core.Utils.Dijkstra import dijkstra, shortest
 from copy import deepcopy
 
 class Worker:
@@ -53,20 +54,6 @@ class Worker:
     # this is need for CSP solver that order a list for Minimum Remaining Values heuristic
     def __lt__(self, other):
         return str(self) < str(other)
-
-    def generate_optimal_path(self):
-        self.optimal_path = OptimalPath(self.env)
-        self.optimal_path.compute_path(self.arm.mounting_point, self.task)
-        print("Starting From:")
-        print(self.arm.mounting_point.x, self.arm.mounting_point.y)
-        print("#########Destinations###########")
-        self.task.show_task
-        print("#########PATH###########")
-
-        for positions in self.optimal_path.path:
-            print(positions)
-
-        print("-------------------------------------")
 
     def my_description(self):
         print("Arm mounted in x: " + str(self.arm.mounting_point.x) + " y: " + str(self.arm.mounting_point.y))
@@ -150,6 +137,38 @@ class Worker:
         self.plan = final_state.workers[0].arm.moves
         self.value = self.task.value / len(self.plan)
         return self
+
+    def plan_with_dijkstra(self):
+        if not self.district.graph:
+            self.district.graph, starting_vertex = create_district_graph_from_env(self.env, self.district)
+            self.district.graph = dijkstra(self.district.graph, starting_vertex)
+        for task_point in self.task.points:
+            target = self.district.graph.get_vertex((task_point[0], task_point[1]))
+            self.arm.path = [task_point]
+            shortest(target, self.arm.path)
+
+            old_p = self.arm.path[0]
+            for p in self.arm.path[1:]:
+                if p == (old_p[0] + 1, old_p[1]):
+                    self.arm.moves.append("R")
+                elif p == (old_p[0] - 1, old_p[1]):
+                    self.arm.moves.append("L")
+                elif p == (old_p[0], old_p[1] + 1):
+                    self.arm.moves.append("U")
+                elif p == (old_p[0], old_p[1] - 1):
+                    self.arm.moves.append("D")
+                else:
+                    self.arm.moves.append("W")
+                old_p = p
+            self.retract_all()
+        self.plan = self.arm.moves
+        self.arm.moves = []
+        self.value = self.task.value / len(self.plan)
+        return self
+
+
+
+
 
     def __deepcopy__(self, memodict={}):
         w = Worker(deepcopy(self.arm, memodict), self.task, env=self.env, district=self.district)

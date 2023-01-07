@@ -154,7 +154,10 @@ class ArmDeployment:
 			coverange_distrib = [0 for _ in self.selected_mounting_point]
 		else:
 			coverange_distrib = [len(tasks) / total_task_covered for tasks in self.mounting_point_tasks.values()]
-		entropy = - sum([p * (math.log(p, len(coverange_distrib)) if p != 0 else 0) for p in coverange_distrib])
+		if len(self.selected_mounting_point) == 1:
+			entropy = 1
+		else:
+			entropy = - sum([p * (math.log(p, len(coverange_distrib)) if p != 0 else 0) for p in coverange_distrib])
 		IoT = self.get_intersection_over_total()
 		# print(self.alpha)
 		# print(IoT)

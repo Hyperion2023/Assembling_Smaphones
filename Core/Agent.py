@@ -298,7 +298,7 @@ class Agent:
             print(worker.arm.moves)
 
 
-    def subdivide_in_districts(self, algorithm: str = "genetic", max_iter=100, max_district_size=30, alpha=0.3, verbose=False, **kwargs):
+    def subdivide_in_districts(self, algorithm: str = "genetic", max_iter=100, max_district_size=30, alpha=0.3, verbose=True, **kwargs):
         def get_starting_state():
             s = ArmDeployment(self.environment, max_district_size, alpha=alpha)
             s.random_init()
@@ -337,7 +337,7 @@ class Agent:
         else:
             raise ValueError("algorithm not recognized")
         self.districts = subdivision.get_standard_districts()
-        subdivision.draw_districts()
+        # subdivision.draw_districts()
         print("total covered tasks:", subdivision.get_n_task_covered())
 
     def plan_all_workers(self, planning_alg="astar", **kwargs):
@@ -370,7 +370,12 @@ class Agent:
         with alive_bar(len(self.workers), bar="bubbles", dual_line=True,
                        title='Planning paths', force_tty=True) as bar:
             for worker in self.workers:
-                results.append(worker.plan_with_astar(a_star_max_trials, retract_policy, max_time))
+                if planning_alg == "dijkstra":
+                    results.append(worker.plan_with_dijkstra())
+                elif planning_alg == "astar":
+                    results.append(worker.plan_with_astar(a_star_max_trials, retract_policy, max_time))
+                else:
+                    raise ValueError("Unrecognised planning algorithm")
                 bar(1)
 
         self.workers = [worker for worker in results if worker.plan is not None and len(worker.plan) < self.environment.n_steps]

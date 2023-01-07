@@ -34,7 +34,7 @@ class District:
         self.mounting_points = []
         self.robotic_arms = []
         self.ordered_tasks = [] #List of lists<
-        self.graphs = []
+        self.graph = None
         self.has_shared_region = False
 
 

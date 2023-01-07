@@ -8,6 +8,7 @@ def hill_climbing(get_starting_state, max_iter, n_restart, policy="get_first"):
 		for n_iter in range(max_iter):
 			print("n_iter:", n_iter, end=" ")
 			print(current_state_fitness)
+			# current_state.draw_districts()
 			best_child = None
 			best_child_fitness = 0
 			for child in current_state.get_children():

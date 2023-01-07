@@ -35,6 +35,7 @@ class District:
         self.robotic_arms = []
         self.ordered_tasks = [] #List of lists<
         self.graphs = []
+        self.has_shared_region = False
 
 
     def add_graph(self, graph):
@@ -77,5 +78,5 @@ class District:
         self.robotic_arms.append(robotic_arm)
 
     def is_in(self, p):
-        return self.origin[0] <= p[0] <= self.origin[0] + self.width - 1 and \
-            self.origin[1] <= p[1] <= self.origin[1] + self.height - 1
+        return self.origin[0] <= p[0] <= self.origin[0] + self.width and \
+            self.origin[1] <= p[1] <= self.origin[1] + self.height

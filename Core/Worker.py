@@ -47,6 +47,7 @@ class Worker:
         self.action_taken = False
         self.env = env
         self.district = district
+        self.simple_plan = True
         #self.generate_optimal_path()
 
     # this is need for CSP solver that order a list for Minimum Remaining Values heuristic
@@ -101,7 +102,8 @@ class Worker:
         self.arm.path = self.arm.path[:-n]
 
     def retract_all(self):
-        self.retract_n_steps(len(self.arm.path) - 1)
+        if len(self.arm.path) > 1:
+            self.retract_n_steps(len(self.arm.path) - 1)
 
     def retract(self):
         if not self.arm.collision_check:

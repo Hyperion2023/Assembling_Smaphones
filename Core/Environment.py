@@ -252,12 +252,12 @@ class Environment:
         for m in self.mounting_points:
             self.matrix[state_to_matrix((m.x, m.y))] = (1, 0, 0)
         self.im.set_data(self.matrix)
-        # for row in self.districts:
-        #     for district in row:
-        #         self.ax.add_patch(patches.Rectangle((district.origin[0]-0.5,district.origin[1]-0.5), district.width, district.height, linewidth=1, edgecolor='b', facecolor='none'))
+        for district in agent.districts:
+            self.ax.add_patch(patches.Rectangle((district.origin[0]-0.5, district.origin[1]-0.5), district.width + 1, district.height + 1, linewidth=1, edgecolor='g', facecolor='none'))
 
+        self.fig.suptitle(self.current_step)
         plt.draw()
-        plt.pause(0.2)
+        plt.pause(0.1)
 
         #input("WAIT A SECOND PLX")
 

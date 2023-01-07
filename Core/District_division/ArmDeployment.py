@@ -8,7 +8,7 @@ import Core
 from Core import Environment
 from Core.Utils.conversion import state_to_matrix
 from Core.Utils.distances import manhattan_distance, x_y_distance
-from .District import District
+from Core.District_division.District import District
 
 
 class ArmDeployment:
@@ -130,7 +130,7 @@ class ArmDeployment:
 		if not self.districts:
 			self.calculate_districts()
 		for i in range(len(self.districts)):
-			for d in self.districts[i:]:
+			for d in self.districts[i+1:]:
 				total_inter_area += self.check_intersection_area(self.districts[i], d)
 		return total_inter_area / (self.env.width * self.env.height)
 
@@ -154,7 +154,7 @@ class ArmDeployment:
 			coverange_distrib = [0 for _ in self.selected_mounting_point]
 		else:
 			coverange_distrib = [len(tasks) / total_task_covered for tasks in self.mounting_point_tasks.values()]
-		entropy = - sum([p * (math.log(p) if p != 0 else 0) for p in coverange_distrib])
+		entropy = - sum([p * (math.log(p, len(coverange_distrib)) if p != 0 else 0) for p in coverange_distrib])
 		IoT = self.get_intersection_over_total()
 		# print(self.alpha)
 		# print(IoT)
@@ -202,6 +202,14 @@ class ArmDeployment:
 			for task in tasks:
 				total_covered_score += task.get_task_score(m_point)
 		return total_covered_score
+
+	def get_total_covered_value(self):
+		total_covered_value = 0
+		for m_point, tasks in self.mounting_point_tasks.items():
+			for task in tasks:
+				total_covered_value += task.value
+		return total_covered_value
+
 	def get_standard_districts(self):
 		if not self.districts:
 			self.calculate_districts()
@@ -212,6 +220,15 @@ class ArmDeployment:
 			standard_district.tasks = list(self.mounting_point_tasks[m])
 			standard_districts.append(standard_district)
 		return standard_districts
+
+	def get_entropy(self):
+		total_task_covered = sum([len(tasks) for tasks in self.mounting_point_tasks.values()])
+		if total_task_covered == 0:
+			coverange_distrib = [0 for _ in self.selected_mounting_point]
+		else:
+			coverange_distrib = [len(tasks) / total_task_covered for tasks in self.mounting_point_tasks.values()]
+		entropy = - sum([p * (math.log(p, len(coverange_distrib)) if p != 0 else 0) for p in coverange_distrib])
+		return entropy
 
 	def get_children(self):
 		shuffled_selected_mp = list(self.selected_mounting_point)

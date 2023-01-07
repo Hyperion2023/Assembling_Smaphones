@@ -2,9 +2,14 @@ import math
 import random
 import statistics
 from concurrent.futures import ProcessPoolExecutor
+from copy import deepcopy
+
 from constraint import *
 from Core import Worker, Environment
 import types
+
+from Core.Utils.districts import get_districts_intersection
+
 if isinstance(Worker, types.ModuleType):
     Worker = Worker.Worker
 from Core.District_division import ArmDeployment
@@ -12,6 +17,7 @@ from Core.District_division.genetic_algoritm import genetic_algorithm
 from Core.District_division.hill_climbing import hill_climbing
 from Core.District_division.simulated_annealing import simulated_annealing
 from Core.Utils.Dijkstra import *
+from Core.CSP import MinConflicts
 drawFlag = True
 sec_time = 10
 
@@ -24,6 +30,10 @@ def get_times_in_shared_zone(worker, d):
     t0 = None
     t1 = None
     head = (worker.arm.mounting_point.x, worker.arm.mounting_point.y)
+    if d.is_in(head):
+        t0 = 0
+        t1 = len(worker.plan) - 1
+        return t0, t1
     path_in_shared_zone = [head]
     for i, move in enumerate(worker.plan):
         if move == "U":
@@ -50,8 +60,68 @@ def get_times_in_shared_zone(worker, d):
             path_in_shared_zone = [head]
             if t1 is None:
                 t1 = i
-
     return t0, t1
+
+def are_path_intersecting(w1, w2):
+    w1_cells = set()
+    head = (w1.arm.mounting_point.x, w1.arm.mounting_point.y)
+    w1_cells.add(head)
+    for i, move in enumerate(w1.plan):
+        if move == "U":
+            head = (head[0], head[1] + 1)
+        elif move == "R":
+            head = (head[0] + 1, head[1])
+        elif move == "D":
+            head = (head[0], head[1] - 1)
+        elif move == "L":
+            head = (head[0] - 1, head[1])
+        w1_cells.add(head)
+
+    head = (w2.arm.mounting_point.x, w2.arm.mounting_point.y)
+    for i, move in enumerate(w2.plan):
+        if move == "U":
+            head = (head[0], head[1] + 1)
+        elif move == "R":
+            head = (head[0] + 1, head[1])
+        elif move == "D":
+            head = (head[0], head[1] - 1)
+        elif move == "L":
+            head = (head[0] - 1, head[1])
+        if head in w1_cells:
+            return True
+
+    return False
+
+def recurrent_groups(i, indexes, group, district):
+    group.add(i)
+    indexes[i] = True
+    for j in list(map(lambda x: x[0], filter(lambda i: not i[1], indexes.items()))):
+
+        # if box of index j has already been assigned skip
+        if indexes[j]:
+            continue
+
+        if get_districts_intersection(district[i], district[j]):
+            recurrent_groups(j, indexes, group, district)
+
+
+def get_intersecting_groups(districts):
+    groups = []
+    indexes = {i: False for i in range(len(districts))}
+    remaining = list(filter(lambda i: not i[1], indexes.items()))
+    while remaining:
+        group = set()
+        remaining_i = remaining[0][0]
+        recurrent_groups(remaining_i, indexes, group, districts)
+        groups.append(group)
+        remaining = list(filter(lambda i: not i[1], indexes.items()))
+
+    res = []
+    for group in groups:
+        if len(group) > 1:
+            res.append([districts[d_index] for d_index in group])
+    return res
+
 
 class Agent:
     """
@@ -298,35 +368,50 @@ class Agent:
         #     results = executor.map(plan_a_star, *params)
         results = []
         with alive_bar(len(self.workers), bar="bubbles", dual_line=True,
-                       title='Planning paths') as bar:
+                       title='Planning paths', force_tty=True) as bar:
             for worker in self.workers:
                 results.append(worker.plan_with_astar(a_star_max_trials, retract_policy, max_time))
                 bar(1)
 
-        self.workers = [worker for worker in results if worker.plan is not None]
+        self.workers = [worker for worker in results if worker.plan is not None and len(worker.plan) < self.environment.n_steps]
+        print("Planned task:", len(self.workers))
         self.planned = True
 
-    def schedule_plans(self):
-        # intersecting_zones = {}
-        # for d1 in self.districts:
-        #     intersecting_zones[d1] = {}
-        #     for d2 in self.districts:
-        #         if d1 == d2:
-        #             continue
-        #         inter = get_districts_intersection(d1, d2)
-        #         if inter:
-        #             intersecting_zones[d1][d2] = inter
-
+    def schedule_plans(self, max_iter=1000, max_time=600):
         if not self.planned:
             self.plan_all_workers()
+
+        intersecting_zones = {}
+        for d1 in self.districts:
+            intersecting_zones[d1] = {}
+            for d2 in self.districts:
+                if d1 == d2:
+                    continue
+                inter = get_districts_intersection(d1, d2)
+                if inter:
+                    intersecting_zones[d1][d2] = inter
+                    d1.has_shared_region = True
 
         worker_time = {}
         for worker in self.workers:
             worker_time[worker] = len(worker.plan)
+            if intersecting_zones[worker.district]:
+                worker.simple_plan = False
+
+        groups = get_intersecting_groups(self.districts)
+
+        group_worker_dict = {i: [] for i in range(len(groups))}
+        for index, districtList in enumerate(groups):
+            for worker in self.workers:
+                if worker.district in districtList:
+                    group_worker_dict[index].append(worker)
+
 
         workers_shared_start = {}
         workers_shared_end = {}
         for worker in self.workers:
+            if worker.simple_plan:
+                continue
             worker_shared_start = {}
             worker_shared_end = {}
             for d in self.districts:
@@ -340,62 +425,70 @@ class Agent:
             workers_shared_start[worker] = worker_shared_start
             workers_shared_end[worker] = worker_shared_end
 
-        problem = Problem()
+        # counter = 0
+        # for worker in self.workers:
+        #     if worker in workers_shared_start and workers_shared_start[worker] != {}:
+        #         counter += 1
+        # print("worker that enter in shared zone:", counter)
 
-        class WorkerFlip:
-            def __init__(self, w):
-                self.w = w
-
-            def __lt__(self, other):
-                return str(self) < str(other)
-
-        worker_flips = []
-        average_value = statistics.mean([w.value for w in self.workers])
-        for w in self.workers:
-            worker_flip = WorkerFlip(w)
-            problem.addVariable(w, list(range(0, self.environment.n_steps - len(w.plan), 5)))
-            if w.value > average_value:
-                problem.addVariable(worker_flip, [True])
-            else:
-                problem.addVariable(worker_flip, [True, False])
-            worker_flips.append(worker_flip)
-        # for w in self.workers:
-        #     if len(w.plan) > 100:
-        #         problem.addConstraint(lambda v: v < 10, (w,))
-        #         break
-
-        for w1, wf1 in zip(self.workers, worker_flips):
-            for w2, wf2 in zip(self.workers, worker_flips):
-                if w1 == w2:
-                    continue
-                if w1.district == w2.district:
-                    problem.addConstraint(create_constraint_same_district(w1, w2, worker_time), (w1, w2, wf1, wf2))
-                else:
-                    if w2.district in workers_shared_start[w1] and w1.district in workers_shared_start[w2]:
-                        problem.addConstraint(create_constraint_different_district(w1, w2, workers_shared_start, workers_shared_end), (w1, w2, wf1, wf2))
-
-        self.schedule = problem.getSolutions()
-        best_schedule = None
-        best_score = 0
-        for s in self.schedule:
-            score = 0
-            for var, val in s.items():
-                if isinstance(var, WorkerFlip):
-                    if val:
-                        score += var.w.task.value
-            if score > best_score:
-                best_schedule = s
-                best_score = score
         self.schedule = {}
-        if best_schedule is not None:
-            for var, val in best_schedule.items():
-                if isinstance(var, WorkerFlip):
-                    if val:
-                        self.schedule[var.w] = best_schedule[var.w]
+        for groups, workers in group_worker_dict.items():
+            csp_min_conflict = MinConflicts()
 
-            min_time = min(*self.schedule.values())
-            self.schedule = {w: t - min_time for w, t in self.schedule.items()}
-            return self.schedule
+            for w in workers:
+                csp_min_conflict.addVariable(w, list(range(self.environment.n_steps - len(w.plan))))
+
+            for i in range(len(workers)):
+                w1 = workers[i]
+                for w2 in workers[i+1:]:
+                    if w1.district == w2.district:
+                        csp_min_conflict.addConstraint(create_constraint_same_district(w1, w2, worker_time), (w1, w2))
+                    else:
+                        if w2.district in workers_shared_start[w1] and w1.district in workers_shared_start[w2] and are_path_intersecting(w1, w2):
+                            csp_min_conflict.addConstraint(create_constraint_different_district(w1, w2, workers_shared_start, workers_shared_end), (w1, w2))
+
+            print(f"solving a problem with {len(csp_min_conflict.problem._variables)} variables and {len(csp_min_conflict.problem._constraints)} constraints")
+            csp_min_conflict.getSolution(max_iter, max_time)
+            n_conflict, conflicting_variables = csp_min_conflict.get_conflicts()
+
+            while n_conflict != 0:
+                conflicting_variables.sort(key=lambda w: w.value)
+                csp_min_conflict.assignment[conflicting_variables[0]] = -1
+                csp_min_conflict.domains[conflicting_variables[0]].append(-1)
+                n_conflict, conflicting_variables = csp_min_conflict.get_conflicts()
+
+            schedule = csp_min_conflict.assignment
+
+            min_time = min(*list(filter(lambda x: x > -1, schedule.values())))
+            schedule = {w: t - min_time for w, t in schedule.items()}
+            self.schedule.update(schedule)
+        self.schedule_simple_worker()
+        print("task scheduled: ", len(list(filter(lambda x: x > -1, self.schedule.values()))))
+        total_score = 0
+        for worker, t in self.schedule.items():
+            if t > -1:
+                total_score += worker.task.value
+        print("total score achived: ", total_score)
+        return self.schedule
+
+    def schedule_simple_worker(self):
+        district_worker = {d: [] for d in self.districts if d.has_shared_region == False}
+
+        for w in self.workers:
+            if w.simple_plan:
+                district_worker[w.district].append(w)
+        for d, worker_list in district_worker.items():
+            worker_list.sort(key=lambda w: w.value, reverse=True)
+            t = 0
+            for w in worker_list:
+                time = len(w.plan)
+                if t+time > self.environment.n_steps:
+                    self.schedule[w] = -1
+                    continue
+                self.schedule[w] = t
+                t += time
+
+
 
     def run_schedule(self):
         if not self.schedule:
@@ -420,8 +513,8 @@ class Agent:
 
 # functions that create a lambda because python sucks and always do late binding
 def create_constraint_same_district(w1, w2, worker_time):
-    def f(v1, v2, vf1, vf2):
-        if vf1 and vf2:
+    def f(v1, v2):
+        if v1 != -1 and v2 != -1:
             return v1 + worker_time[w1] < v2 or v2 + worker_time[w2] < v1
         else:
             return True
@@ -429,8 +522,8 @@ def create_constraint_same_district(w1, w2, worker_time):
 
 
 def create_constraint_different_district(w1, w2, workers_shared_start, workers_shared_end):
-    def f(v1, v2, vf1, vf2):
-        if vf1 and vf2:
+    def f(v1, v2):
+        if v1 != -1 and v2 != -1:
             return v1 + workers_shared_start[w1][w2.district] > \
                                v2 + workers_shared_end[w2][w1.district] or \
                                v1 + workers_shared_end[w1][w2.district] < \

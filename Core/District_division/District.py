@@ -37,7 +37,7 @@ class District:
 			for district in districts:
 				if district.is_in(p):
 					return False
-		return True
+		return True - 1
 
 	def is_in(self, p: tuple):
 		"""

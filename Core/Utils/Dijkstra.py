@@ -167,67 +167,25 @@ def is_mounting_point(p, env):
     return False
 
 
-def create_graph_from_district(agent):
-    """
-    Generate a list of graphs for the districts in the environment.
-    :param environment: Environment.
-    """
-    graphList = []
-    arms_list = []
-    with alive_bar(len(agent.active_mounting_points), bar="bubbles", dual_line=True, title='Assigning Tasks') as bar:
-        for keyValue in agent.active_mounting_points:
-            # Each district has origin, w and h
-            submatrix = agent.environment.matrix[keyValue[0].origin[0]:keyValue[0].origin[0] + keyValue[0].width,
-                        keyValue[0].origin[1]:keyValue[0].origin[1] + keyValue[0].height]
-            g = Graph()
-            g.create_graph_from_mat(submatrix)
-            graphList.append(g)
-            arm_to_add=next(
-                (x for x in keyValue[0].robotic_arms if x.mounting_point == keyValue[0].mounting_points[keyValue[1]]),
-                None)
-            if arm_to_add:
-                arms_list.append(arm_to_add)
-                bar(1)
+def create_district_graph_from_env(env, district):
+    graph = Graph()
+    for x in range(district.origin[0], district.origin[0] + district.width + 1, 1):
+        for y in range(district.origin[1], district.origin[1] + district.height + 1, 1):
+            if is_mounting_point((x, y), env) and (x, y) != (district.mounting_points[0].x, district.mounting_points[0].y):
+                continue
+            graph.add_vertex((x, y))  # add all the nodes that are not mounting points
 
-
-    # print(global_coordinates_to_district_coordinates(
-    #                 (district.robotic_arms[0].mounting_point.x,
-    #                  district.robotic_arms[0].mounting_point.y),environment))
-    if agent.environment.district_size<=10:
-        inputs = tqdm(arms_list)
-        results = Parallel(n_jobs=num_cores)(
-            delayed(dijkstra)(
-                graphList[index], graphList[index].get_vertex(
-                    global_coordinates_to_district_coordinates(
-                        (i.mounting_point.x,
-                         i.mounting_point.y),
-                        agent.environment)))
-            for index, i in enumerate(inputs))
-    else:
-        results=[]
-        print("Starting dijkstra Computation")
-        with alive_bar(len(arms_list), bar="bubbles", dual_line=True,title='Computing Dijkstra') as bar:
-            for index, i in enumerate(arms_list):
-                results.append(dijkstra(graphList[index], graphList[index].get_vertex(
-                    global_coordinates_to_district_coordinates(
-                        (i.mounting_point.x,
-                         i.mounting_point.y),
-                        agent.environment))))
-                bar(1)
-
-
-    graphList = results
-    for graph,arm in zip(graphList,arms_list):
-        arm.graph=graph
-
-
-
-    print("STOP")
-
-    # with multiprocessing.Pool() as pool:
-    #     call the function for each item in parallel
-    #     for result in pool.map(task, items):
-    #         print(result)
+    for x in range(district.origin[0], district.origin[0] + district.width + 1, 1):
+        for y in range(district.origin[1], district.origin[1] + district.height + 1, 1):
+            if is_mounting_point((x, y), env) and (x, y) != (district.mounting_points[0].x, district.mounting_points[0].y):
+                continue
+            if x + 1 <= district.origin[0] + district.width and (
+                    not is_mounting_point((x + 1, y), env) or (x + 1, y) == (district.mounting_points[0].x, district.mounting_points[0].y)):
+                graph.add_edge((x, y), (x + 1, y))
+            if y + 1 <= district.origin[1] + district.height and (
+                    not is_mounting_point((x, y + 1), env) or (x, y + 1) == (district.mounting_points[0].x, district.mounting_points[0].y)):
+                graph.add_edge((x, y), (x, y + 1))
+    return graph, graph.get_vertex((district.mounting_points[0].x, district.mounting_points[0].y))
 
 
 def dijkstra(aGraph, start):
